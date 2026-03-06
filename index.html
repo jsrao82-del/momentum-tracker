@@ -238,7 +238,7 @@ function buildCard(evt){
   const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
   const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
   const isTie=hasScores&&aScore===hScore;
-  const fav=getFav(away,home);
+  const fav=getFav(away,home,comp);
   const udogWin=hasScores&&((fav==='home'&&aScore>hScore)||(fav==='away'&&hScore>aScore));
   const det=(evt.status?.type?.shortDetail||'').toLowerCase();
   const in2nd=det.includes('2nd')||det.includes('ot');
