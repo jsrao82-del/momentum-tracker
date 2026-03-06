@@ -118,7 +118,13 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 const HOST='sports-information.p.rapidapi.com';
 let KEY=localStorage.getItem('mt_key')||'';
 let selGameId=null,autoTimer=null;
-if(KEY){document.getElementById('apiKeyInput').value=KEY;setTimeout(loadGames,300);}
+
+window.addEventListener('load',()=>{
+  if(KEY){
+    document.getElementById('apiKeyInput').value=KEY;
+    loadGames();
+  }
+});
 
 function saveApiKey(){KEY=document.getElementById('apiKeyInput').value.trim();localStorage.setItem('mt_key',KEY);loadGames();}
 function refreshAll(){loadGames();if(selGameId)loadGameDetails(selGameId);}
@@ -146,4 +152,174 @@ function statusLabel(type){
 async function loadGames(){
   if(!KEY){showErr('Enter your RapidAPI key.');return;}
   const s=document.getElementById('gamesStrip');
-  s.inn
+  s.innerHTML='<div class="loading"><div class="spinner"></div> Loading...</div>';
+  try{
+    const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
+    const data=await api('/mbb/scoreboard?year='+y+'&month='+m+'&day='+d+'&group=50&seasontype=2');
+    renderStrip(data);
+  }catch(e){
+    document.getElementById('gamesStrip').innerHTML='<div style="color:var(--red);padding:10px">Error: '+e.message+'</div>';
+    showErr('Failed to load games: '+e.message);
+  }
+}
+
+function renderStrip(data){
+  const s=document.getElementById('gamesStrip');s.innerHTML='';
+  const evts=data?.events||data?.games||data?.scoreboard?.events||[];
+  if(!evts.length){s.innerHTML='<div style="color:var(--muted);padding:10px">No games found today.</div>';return;}
+  evts.forEach(evt=>{
+    const comp=evt.competitions?.[0]||evt,teams=comp.competitors||comp.teams||[];
+    const home=teams.find(t=>t.homeAway==='home')||teams[0]||{};
+    const away=teams.find(t=>t.homeAway==='away')||teams[1]||{};
+    const gid=evt.id||evt.gameId;
+    const st=getStatusType(evt);
+    const c=document.createElement('div');c.className='game-card';c.onclick=()=>selectGame(gid,evt,c);
+    c.innerHTML='<div class="game-status '+st+'">'+statusLabel(st)+'</div>'+
+      '<div class="matchup"><div class="team-score"><div class="team-abbr">'+(away.team?.abbreviation||'AWAY')+'</div><div class="score">'+(away.score??'—')+'</div></div>'+
+      '<div class="vs">@</div>'+
+      '<div class="team-score"><div class="team-abbr">'+(home.team?.abbreviation||'HOME')+'</div><div class="score">'+(home.score??'—')+'</div></div></div>'+
+      '<div class="game-meta">'+(evt.status?.type?.shortDetail||'')+'</div>';
+    s.appendChild(c);
+  });
+}
+
+async function selectGame(gid,evt,card){
+  document.querySelectorAll('.game-card').forEach(c=>c.classList.remove('active'));
+  card.classList.add('active');
+  selGameId=gid;renderDash(evt);await loadGameDetails(gid);
+  if(autoTimer)clearInterval(autoTimer);
+  autoTimer=setInterval(()=>{loadGames();if(selGameId)loadGameDetails(selGameId);},30000);
+}
+
+function renderDash(evt){
+  const comp=evt.competitions?.[0]||evt,teams=comp.competitors||comp.teams||[];
+  const home=teams.find(t=>t.homeAway==='home')||teams[0]||{};
+  const away=teams.find(t=>t.homeAway==='away')||teams[1]||{};
+  const clock=evt.status?.displayClock||'--:--',period=evt.status?.period||1;
+  const pLabel=period===1?'1st Half':period===2?'2nd Half':'OT'+(period-2);
+  document.getElementById('mainDashboard').innerHTML=
+    '<div class="card scoreboard-card"><div class="card-header"><span class="card-title">Scoreboard</span><span class="badge badge-live">● Live</span></div>'+
+    '<div class="scoreboard-inner">'+
+      '<div class="team-block">'+(away.curatedRank?.current?'<div class="team-rank">#'+away.curatedRank.current+'</div>':'')+
+        '<div class="team-name">'+(away.team?.displayName||'Away')+'</div><div class="team-record">'+(away.records?.[0]?.summary||'')+'</div>'+
+        '<div class="big-score" style="color:var(--accent2)">'+(away.score??'—')+'</div></div>'+
+      '<div class="clock-block"><div class="clock">'+clock+'</div><div class="period">'+pLabel+'</div>'+
+        '<div style="margin-top:12px;text-align:center"><div style="font-size:0.6rem;color:var(--muted);margin-bottom:4px">Timeouts</div>'+
+        '<div style="display:flex;gap:20px;justify-content:center">'+
+          '<div><div style="font-size:0.6rem;color:var(--muted);margin-bottom:3px">'+(away.team?.abbreviation||'AWY')+'</div><div class="timeouts-row" id="awayTO"></div></div>'+
+          '<div><div style="font-size:0.6rem;color:var(--muted);margin-bottom:3px">'+(home.team?.abbreviation||'HME')+'</div><div class="timeouts-row" id="homeTO"></div></div>'+
+        '</div></div></div>'+
+      '<div class="team-block">'+(home.curatedRank?.current?'<div class="team-rank">#'+home.curatedRank.current+'</div>':'')+
+        '<div class="team-name">'+(home.team?.displayName||'Home')+'</div><div class="team-record">'+(home.records?.[0]?.summary||'')+'</div>'+
+        '<div class="big-score" style="color:var(--accent)">'+(home.score??'—')+'</div><div class="home-ind">🏠 Home Court</div></div>'+
+    '</div></div>'+
+    '<div class="card metrics-card"><div class="card-header"><span class="card-title">📈 Advanced Metrics</span><span style="font-size:0.65rem;color:var(--muted)">Per 100 possessions</span></div>'+
+      '<div class="metrics-grid">'+
+        '<div class="metric-block"><div class="metric-label">Offensive Efficiency</div><div class="metric-teams" id="offEffRow"><div style="color:var(--muted);font-size:0.75rem">Loading...</div></div></div>'+
+        '<div class="metric-block"><div class="metric-label">Defensive Efficiency</div><div class="metric-teams" id="defEffRow"><div style="color:var(--muted);font-size:0.75rem">Loading...</div></div></div>'+
+        '<div class="metric-block"><div class="metric-label">Pace (Poss/Min)</div><div class="metric-teams" id="paceRow"><div style="color:var(--muted);font-size:0.75rem">Loading...</div></div></div>'+
+        '<div class="metric-block"><div class="metric-label">Turnover Rate</div><div class="metric-teams" id="tovRow"><div style="color:var(--muted);font-size:0.75rem">Loading...</div></div></div>'+
+      '</div></div>'+
+    '<div class="card momentum-card"><div class="card-header"><span class="card-title">⚡ Momentum</span><span style="font-size:0.65rem;color:var(--muted)">Home(+) vs Away(−)</span></div>'+
+      '<canvas id="momChart" style="width:100%;height:100px;display:block"></canvas>'+
+      '<div class="chart-labels"><span>Start</span><span>Halftime</span><span>Now</span></div></div>'+
+    '<div class="card"><div class="card-header"><span class="card-title">📊 '+(away.team?.abbreviation||'Away')+' Players</span><span class="badge badge-foul">Foul Watch</span></div><div id="awayPlayers"><div class="loading"><div class="spinner"></div></div></div></div>'+
+    '<div class="card"><div class="card-header"><span class="card-title">📊 '+(home.team?.abbreviation||'Home')+' Players</span><span class="badge badge-foul">Foul Watch</span></div><div id="homePlayers"><div class="loading"><div class="spinner"></div></div></div></div>'+
+    '<div class="card"><div class="card-header"><span class="card-title">🎯 Game Info & Lines</span></div>'+
+      '<div class="info-grid">'+
+        '<div class="info-block"><div class="info-label">Venue</div><div class="info-value" style="font-size:0.8rem">'+(comp.venue?.fullName||'—')+'</div></div>'+
+        '<div class="info-block"><div class="info-label">Attendance</div><div class="info-value">'+(comp.attendance?comp.attendance.toLocaleString():'—')+'</div></div>'+
+        '<div class="info-block"><div class="info-label">Spread</div><div class="info-value" id="spreadVal">—</div></div>'+
+        '<div class="info-block"><div class="info-label">Over/Under</div><div class="info-value" id="ouVal">—</div></div>'+
+      '</div></div>'+
+    '<div class="card"><div class="card-header"><span class="card-title">📋 Head to Head</span></div><div id="h2hSection"><div class="loading"><div class="spinner"></div></div></div></div>';
+  renderTO('awayTO',4,0);renderTO('homeTO',4,0);setTimeout(()=>drawChart([]),100);
+}
+
+function renderTO(id,total,used){const el=document.getElementById(id);if(!el)return;el.innerHTML='';for(let i=0;i<total;i++){const d=document.createElement('div');d.className='timeout-dot'+(i<used?' used':'');el.appendChild(d);}}
+
+function drawChart(diffs){
+  const canvas=document.getElementById('momChart');if(!canvas)return;
+  const ctx=canvas.getContext('2d'),W=canvas.offsetWidth||700;
+  canvas.width=W;canvas.height=100;ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,100);
+  ctx.strokeStyle='#1e2d45';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,50);ctx.lineTo(W,50);ctx.stroke();ctx.setLineDash([]);
+  if(!diffs.length){ctx.fillStyle='#64748b';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText('Momentum chart loads with play-by-play data',W/2,55);return;}
+  const max=Math.max(...diffs.map(d=>Math.abs(d)),10);
+  const pts=diffs.map((d,i)=>({x:(i/Math.max(diffs.length-1,1))*W,y:50-(d/max)*44}));
+  ctx.beginPath();ctx.moveTo(0,50);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,50);ctx.closePath();
+  const g=ctx.createLinearGradient(0,0,0,100);g.addColorStop(0,'rgba(249,115,22,0.25)');g.addColorStop(1,'rgba(59,130,246,0.25)');ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle='#f97316';ctx.lineWidth=2.5;pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
+}
+
+async function loadGameDetails(gid){
+  try{
+    const[box,pbp]=await Promise.allSettled([api('/mbb/box-score/'+gid),api('/mbb/play-by-play/'+gid)]);
+    if(box.status==='fulfilled')renderBox(box.value);
+    if(pbp.status==='fulfilled')renderPbp(pbp.value);
+    try{const sum=await api('/mbb/summary/'+gid);renderOdds(sum);renderH2H(sum);}catch(e){}
+    document.getElementById('lastUpdate').textContent='Updated '+new Date().toLocaleTimeString();
+  }catch(e){showErr('Game error: '+e.message);}
+}
+
+function calcPoss(fga,fta,orb,tov){return fga-orb+tov+0.44*fta;}
+
+function renderBox(data){
+  const tl=data?.players||data?.teams||[];
+  const teams=Array.isArray(tl)?tl:Object.values(tl);
+  const teamTotals=[];
+  ['awayPlayers','homePlayers'].forEach((id,idx)=>{
+    const el=document.getElementById(id);if(!el)return;
+    const td=teams[idx];if(!td){el.innerHTML='<div style="color:var(--muted);padding:8px">No data</div>';return;}
+    const roster=td?.statistics?.[0]?.athletes||td?.athletes||[];
+    if(!roster.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No player data</div>';return;}
+    let totPts=0,totFGA=0,totFTA=0,totORB=0,totTOV=0,totMin=0;
+    const sorted=roster.filter(a=>a?.stats?.length>0).map(a=>{
+      const s=a.stats||[];
+      totFGA+=parseInt((s[1]||'0-0').split('-')[1])||0;
+      totFTA+=parseInt((s[3]||'0-0').split('-')[1])||0;
+      totORB+=parseInt(s[11])||0;
+      totTOV+=parseInt(s[15])||0;
+      const pts=parseInt(s[18])||0;totPts+=pts;
+      totMin+=parseFloat(s[0])||0;
+      return{name:a.athlete?.shortName||'—',pos:a.athlete?.position?.abbreviation||'',
+        min:s[0]||'0',fg:s[1]||'0-0',tp:s[4]||'0-0',reb:s[12]||'0',ast:s[13]||'0',fouls:parseInt(s[14]||0),pts};
+    }).sort((a,b)=>b.pts-a.pts).slice(0,8);
+    teamTotals.push({pts:totPts,fga:totFGA,fta:totFTA,orb:totORB,tov:totTOV,min:totMin/5});
+    let h='<table class="players-table"><thead><tr><th>Player</th><th>Min</th><th>PTS</th><th>REB</th><th>AST</th><th>FG</th><th>3PT</th><th>Fouls</th></tr></thead><tbody>';
+    sorted.forEach(p=>{const fc=p.fouls>=4?'foul-danger':p.fouls===3?'foul-warning':'foul-ok';
+      h+='<tr><td><div class="player-name">'+p.name+'</div><div class="player-pos">'+p.pos+'</div></td><td>'+p.min+'</td><td style="font-weight:700">'+p.pts+'</td><td>'+p.reb+'</td><td>'+p.ast+'</td><td>'+p.fg+'</td><td>'+p.tp+'</td><td><span class="foul-badge '+fc+'">'+p.fouls+'</span></td></tr>';});
+    el.innerHTML=h+'</tbody></table>';
+  });
+  if(teamTotals.length===2)renderAdvancedMetrics(teamTotals[0],teamTotals[1]);
+}
+
+function renderAdvancedMetrics(away,home){
+  const ap=calcPoss(away.fga,away.fta,away.orb,away.tov)||1;
+  const hp=calcPoss(home.fga,home.fta,home.orb,home.tov)||1;
+  const gm=Math.max(away.min,home.min,1);
+  const awayOE=(away.pts/ap*100).toFixed(1);
+  const homeOE=(home.pts/hp*100).toFixed(1);
+  const awayDE=(home.pts/ap*100).toFixed(1);
+  const homeDE=(away.pts/hp*100).toFixed(1);
+  const pace=((ap+hp)/2/gm).toFixed(1);
+  const awayTOV=(away.tov/ap*100).toFixed(1);
+  const homeTOV=(home.tov/hp*100).toFixed(1);
+  function row(av,hv,higherGood){
+    const an=parseFloat(av),hn=parseFloat(hv);
+    const ac=higherGood?(an>hn?'good':'bad'):(an<hn?'good':'bad');
+    const hc=higherGood?(hn>an?'good':'bad'):(hn<an?'good':'bad');
+    return '<div class="metric-team"><div class="metric-team-name">Away</div><div class="metric-value '+ac+'">'+av+'</div></div>'+
+           '<div class="metric-team"><div class="metric-team-name">Home</div><div class="metric-value '+hc+'">'+hv+'</div></div>';
+  }
+  const o=document.getElementById('offEffRow');if(o)o.innerHTML=row(awayOE,homeOE,true);
+  const d=document.getElementById('defEffRow');if(d)d.innerHTML=row(awayDE,homeDE,false);
+  const p=document.getElementById('paceRow');if(p)p.innerHTML='<div class="metric-team"><div class="metric-team-name">Game</div><div class="metric-value neutral">'+pace+'</div><div style="font-size:0.65rem;color:var(--muted);margin-top:3px">'+(parseFloat(pace)>16?'Fast':'Slow')+' pace</div></div>';
+  const t=document.getElementById('tovRow');if(t)t.innerHTML=row(awayTOV+'%',homeTOV+'%',false);
+}
+
+function renderPbp(data){const plays=data?.plays||data?.playByPlay||[];if(!plays.length)return;const diffs=plays.filter(p=>p.homeScore!=null&&p.awayScore!=null).map(p=>(parseInt(p.homeScore)||0)-(parseInt(p.awayScore)||0));if(diffs.length)drawChart(diffs);}
+function renderOdds(data){const odds=data?.pickcenter||data?.odds||[];const s=document.getElementById('spreadVal'),o=document.getElementById('ouVal');if(!s||!o)return;s.textContent=odds[0]?.details||'—';o.textContent=odds[0]?.overUnder?odds[0].overUnder.toFixed(1):'—';}
+function renderH2H(data){const el=document.getElementById('h2hSection');if(!el)return;const h=data?.headToHeadMatchups||data?.h2h||[];if(!h.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No H2H data</div>';return;}el.innerHTML=h.slice(0,5).map(g=>'<div class="h2h-row"><span>'+(g.shortName||'—')+'</span><span style="color:var(--muted)">'+(g.score||'—')+'</span><span style="font-size:0.65rem;color:var(--muted)">'+(g.date||'')+'</span></div>').join('');}
+</script>
+</body>
+</html>
