@@ -12,53 +12,61 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .logo{display:flex;align-items:center;gap:10px;font-size:1.4rem;font-weight:700;}
 .logo span{color:var(--accent);}
 .status-bar{display:flex;align-items:center;gap:16px;font-size:0.8rem;color:var(--muted);}
-.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;display:inline-block;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink 1.5s infinite;display:inline-block;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 .refresh-btn{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;}
 .config-bar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .config-input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:0.78rem;flex:1;min-width:200px;font-family:monospace;}
 .save-btn{background:var(--accent);border:none;color:white;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;}
 .main-layout{display:flex;gap:20px;align-items:flex-start;}
-.games-col{width:300px;flex-shrink:0;}
+.games-col{width:310px;flex-shrink:0;}
 .dash-col{flex:1;min-width:0;}
 .section-title{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
 .games-list{display:flex;flex-direction:column;gap:8px;}
 
 /* Game card */
-.game-card{border-radius:10px;padding:11px 13px;cursor:pointer;transition:border-color 0.2s;border:1px solid var(--border);background:var(--card);position:relative;}
+.game-card{border-radius:10px;padding:11px 13px;cursor:pointer;transition:border-color 0.2s;border:1px solid var(--border);background:var(--card);}
 .game-card:hover,.game-card.active{border-color:var(--accent);}
 .game-card.is-upcoming{border-style:dashed;opacity:0.85;}
 .game-card.is-final{opacity:0.65;}
 .game-card.card-upset{background:#0b2218;border-color:#22c55e !important;}
 .game-card.card-underdog{background:#211c00;border-color:#eab308 !important;}
 
-.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.status-pill{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:2px 6px;border-radius:4px;}
+.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.status-pill{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:2px 6px;border-radius:4px;flex-shrink:0;}
 .sp-live{background:rgba(34,197,94,0.15);color:var(--green);}
 .sp-halftime{background:rgba(234,179,8,0.15);color:var(--yellow);}
 .sp-final{background:rgba(100,116,139,0.15);color:var(--muted);}
 .sp-upcoming{background:rgba(59,130,246,0.15);color:var(--accent2);}
 .card-clock{font-size:1rem;font-weight:900;color:#fff;}
 .card-clock.halftime{color:var(--yellow);}
-.card-clock.final{color:var(--muted);font-size:0.75rem;}
+.card-clock.final{color:var(--muted);font-size:0.75rem;font-weight:400;}
 .card-clock.upcoming{color:var(--accent2);font-size:0.72rem;font-weight:600;}
+
+/* Tournament banner */
+.tourn-banner{font-size:0.62rem;font-weight:600;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* Team rows */
 .team-row{display:flex;align-items:center;gap:5px;padding:4px 0;}
 .team-row+.team-row{border-top:1px solid rgba(30,45,69,0.7);}
-.t-icons{display:flex;gap:1px;width:28px;flex-shrink:0;font-size:0.8rem;}
-.t-rank{font-size:0.52rem;font-weight:700;background:var(--accent);color:white;padding:1px 3px;border-radius:3px;flex-shrink:0;}
+.t-left{display:flex;align-items:center;gap:5px;flex:1;min-width:0;}
+.t-badge{min-width:22px;text-align:center;flex-shrink:0;font-size:0.75rem;}
+.t-badge.rank-badge{font-weight:900;color:#fff;}
+.t-badge.seed-badge{font-weight:400;color:#fff;font-size:0.7rem;}
 .t-info{flex:1;min-width:0;}
+.t-nameline{display:flex;align-items:center;gap:4px;}
 .t-name{font-size:0.73rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.t-rec{font-size:0.58rem;color:var(--muted);margin-top:1px;}
-.t-conf{color:var(--accent2);}
+.t-icons{font-size:0.75rem;flex-shrink:0;white-space:nowrap;}
+.t-rec{font-size:0.6rem;color:var(--muted);margin-top:1px;}
 .t-score{font-size:1.25rem;font-weight:900;min-width:34px;text-align:right;flex-shrink:0;}
 .s-win{color:var(--green);}
 .s-tie{color:var(--accent2);}
 .s-lose{color:var(--text);}
 
 /* Footer */
-.card-footer{margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;align-items:center;font-size:0.62rem;}
+.card-footer{margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);font-size:0.62rem;}
+.game-location{color:var(--muted);margin-bottom:3px;}
+.card-alerts{display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;align-items:center;margin-top:2px;}
 .line-str{color:var(--accent);font-weight:700;}
 .close-alert{color:var(--red);font-weight:700;animation:flash 0.7s infinite;}
 .upset-str{color:var(--green);font-weight:700;}
@@ -162,27 +170,18 @@ function showErr(m){const b=document.getElementById('errorBox');b.style.display=
 async function api(path){const r=await fetch('https://'+HOST+path,{headers:{'x-rapidapi-host':HOST,'x-rapidapi-key':KEY}});if(!r.ok)throw new Error('API '+r.status);return r.json();}
 
 function getRec(team,type){return team?.records?.find(r=>r.type===type)?.summary||'';}
-function winPct(rec){if(!rec)return 0;const p=rec.split('-');const w=parseInt(p[0])||0,l=parseInt(p[1])||0;return(w+l)===0?0.5:w/(w+l);}
-function getFav(away,home){const ap=winPct(getRec(away,'total')),hp=winPct(getRec(home,'total'));return ap>hp?'away':'home';}
-
+function winPct(rec){if(!rec)return 0.5;const p=rec.split('-');const w=parseInt(p[0])||0,l=parseInt(p[1])||0;return(w+l)===0?0.5:w/(w+l);}
+function getFav(away,home){return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?'away':'home';}
 function estimateLine(away,home){
-  const awayRec=getRec(away,'total'),homeRec=getRec(home,'total');
-  const ap=winPct(awayRec),hp=winPct(homeRec);
-  const diff=(hp-ap)*100;
-  if(Math.abs(diff)<2)return null;
+  const ap=winPct(getRec(away,'total')),hp=winPct(getRec(home,'total'));
+  const diff=(hp-ap)*100;if(Math.abs(diff)<2)return null;
   const spread=Math.min(Math.abs(diff)*0.4,28).toFixed(1);
-  const favTeam=diff>0?home:away;
-  const dogTeam=diff>0?away:home;
-  const favAbbr=favTeam.team?.abbreviation||'?';
-  const dogAbbr=dogTeam.team?.abbreviation||'?';
-  return favAbbr+' -'+spread+' / '+dogAbbr+' +'+spread;
+  const fT=diff>0?home:away,dT=diff>0?away:home;
+  return (fT.team?.abbreviation||'?')+' -'+spread+' / '+(dT.team?.abbreviation||'?')+' +'+spread;
 }
-
 function getStatus(evt){
-  const desc=(evt.status?.type?.description||'').toLowerCase();
-  const state=(evt.status?.type?.state||'').toLowerCase();
-  const name=(evt.status?.type?.name||'').toLowerCase();
-  const det=(evt.status?.type?.shortDetail||'').toLowerCase();
+  const desc=(evt.status?.type?.description||'').toLowerCase(),state=(evt.status?.type?.state||'').toLowerCase();
+  const name=(evt.status?.type?.name||'').toLowerCase(),det=(evt.status?.type?.shortDetail||'').toLowerCase();
   if(name==='status_final'||desc.includes('final')||state==='post')return'final';
   if(desc.includes('half')||det.includes('half')||name.includes('halftime'))return'halftime';
   if(state==='in'||desc.includes('progress'))return'live';
@@ -197,9 +196,23 @@ async function loadGames(){
   el.innerHTML='<div class="loading"><div class="spinner"></div> Loading...</div>';
   try{
     const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
-    // No group filter = all D1
-    const data=await api('/mbb/scoreboard?year='+y+'&month='+m+'&day='+d+'&seasontype=2');
-    renderList(data);
+    const base='/mbb/scoreboard?year='+y+'&month='+m+'&day='+d;
+    const [r1,r2,r3]=await Promise.allSettled([
+      api(base+'&seasontype=2'),
+      api(base+'&seasontype=3'),
+      api(base+'&seasontype=4')
+    ]);
+    const e1=r1.status==='fulfilled'?r1.value?.events||[]:[];
+    const e2=r2.status==='fulfilled'?r2.value?.events||[]:[];
+    const e3=r3.status==='fulfilled'?r3.value?.events||[]:[];
+    const ids1=new Set(e1.map(e=>e.id));
+    const ids12=new Set([...ids1,...e2.map(e=>e.id)]);
+    // Tag season type on each event
+    e1.forEach(e=>e._stype=2);
+    e2.forEach(e=>e._stype=3);
+    e3.forEach(e=>e._stype=4);
+    const all=[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))];
+    renderList({events:all});
   }catch(e){
     document.getElementById('gamesList').innerHTML='<div style="color:var(--red);padding:8px">Error: '+e.message+'</div>';
     showErr('Failed: '+e.message);
@@ -208,10 +221,9 @@ async function loadGames(){
 
 function renderList(data){
   const el=document.getElementById('gamesList');el.innerHTML='';
-  const evts=data?.events||data?.scoreboard?.events||[];
+  const evts=data?.events||[];
   if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
-  const sorted=[...evts].sort((a,b)=>sortOrd(getStatus(a))-sortOrd(getStatus(b)));
-  sorted.forEach(evt=>el.appendChild(buildCard(evt)));
+  [...evts].sort((a,b)=>sortOrd(getStatus(a))-sortOrd(getStatus(b))).forEach(evt=>el.appendChild(buildCard(evt)));
 }
 
 function buildCard(evt){
@@ -220,60 +232,73 @@ function buildCard(evt){
   const away=teams.find(t=>t.homeAway==='away')||teams[1]||{};
   const gid=evt.id||evt.gameId;
   const st=getStatus(evt);
+  const neutral=!!(comp.neutralSite);
+  const stype=evt._stype||2; // 2=reg, 3=conf tourn, 4=NCAA
 
   const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
   const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
   const isTie=hasScores&&aScore===hScore;
   const fav=getFav(away,home);
   const udogWin=hasScores&&((fav==='home'&&aScore>hScore)||(fav==='away'&&hScore>aScore));
-
   const det=(evt.status?.type?.shortDetail||'').toLowerCase();
   const in2nd=det.includes('2nd')||det.includes('ot');
   const isUpset=(st==='halftime'||(st==='live'&&in2nd)||(st==='final'&&udogWin))&&udogWin;
   const isUdog=st==='live'&&!in2nd&&udogWin;
   const secs=clockSecs(evt.status?.displayClock);
-  const margin=Math.abs(aScore-hScore);
-  const isClose=hasScores&&in2nd&&secs<=300&&margin<8&&st==='live';
+  const isClose=hasScores&&in2nd&&secs<=300&&Math.abs(aScore-hScore)<8&&st==='live';
 
   // Records
   const awayTotal=getRec(away,'total'),homeTotal=getRec(home,'total');
   const awayConf=getRec(away,'vsconf'),homeConf=getRec(home,'vsconf');
 
-  // Line: API first, fallback to estimate
+  // Line
   let lineStr='';
   const apiOdds=comp?.odds?.[0];
-  if(apiOdds?.details){
-    lineStr=apiOdds.details+(apiOdds.overUnder?' · O/U '+apiOdds.overUnder:'');
-  }else{
-    lineStr=estimateLine(away,home)||'';
-  }
+  if(apiOdds?.details) lineStr=apiOdds.details+(apiOdds.overUnder?' · O/U '+apiOdds.overUnder:'');
+  else lineStr=estimateLine(away,home)||'';
+
+  // Location city, state
+  const venue=comp?.venue;
+  const city=venue?.address?.city,state=venue?.address?.state;
+  const locationStr=(city&&state)?city+', '+state:(city||'');
+
+  // Tournament name/round from notes
+  const tournNote=comp?.notes?.[0]?.headline||'';
 
   // Score colors
   const aCls=isTie?'s-tie':(aScore>hScore?'s-win':'s-lose');
   const hCls=isTie?'s-tie':(hScore>aScore?'s-win':'s-lose');
 
-  // Ranks (hide 99)
-  const aRank=away.curatedRank?.current&&away.curatedRank.current<99?'<span class="t-rank">#'+away.curatedRank.current+'</span>':'';
-  const hRank=home.curatedRank?.current&&home.curatedRank.current<99?'<span class="t-rank">#'+home.curatedRank.current+'</span>':'';
+  // Badge left of name: rank (reg season, bold) or seed (tournament, normal)
+  // stype=2: show AP rank if top 25 in bold white
+  // stype=3/4: show seed in normal white
+  function getLeftBadge(team){
+    const rank=team.curatedRank?.current;
+    const seed=team.seed;
+    if((stype===3||stype===4)&&seed){
+      return '<span class="t-badge seed-badge">'+seed+'</span>';
+    }
+    if(stype===2&&rank&&rank<26){
+      return '<span class="t-badge rank-badge">'+rank+'</span>';
+    }
+    return '<span class="t-badge"></span>';
+  }
+
+  // Icons right of name: home + star (neutral = no home)
+  const aIcons=(fav==='away'?' ⭐':'');
+  const hIcons=(neutral?'':(fav==='home'?' 🏠⭐':' 🏠'));
 
   // Clock
   let clockHtml='';
-  if(st==='live'){
-    const clk=evt.status?.displayClock||'';
-    const per=evt.status?.period||1;
-    const pl=per===1?'1ST':per===2?'2ND':'OT'+(per-2);
-    clockHtml='<span class="card-clock">'+clk+' '+pl+'</span>';
-  }else if(st==='halftime'){
-    clockHtml='<span class="card-clock halftime">HALFTIME</span>';
-  }else if(st==='final'){
-    clockHtml='<span class="card-clock final">FINAL</span>';
-  }else{
-    clockHtml='<span class="card-clock upcoming">'+(evt.status?.type?.shortDetail||'')+'</span>';
-  }
+  if(st==='live'){const clk=evt.status?.displayClock||'';const per=evt.status?.period||1;const pl=per===1?'1ST':per===2?'2ND':'OT'+(per-2);clockHtml='<span class="card-clock">'+clk+' '+pl+'</span>';}
+  else if(st==='halftime')clockHtml='<span class="card-clock halftime">HALFTIME</span>';
+  else if(st==='final')clockHtml='<span class="card-clock final">FINAL</span>';
+  else clockHtml='<span class="card-clock upcoming">'+(evt.status?.type?.shortDetail||'')+'</span>';
 
-  // Team name = location (no moniker)
   const aName=away.team?.location||away.team?.displayName||'Away';
   const hName=home.team?.location||home.team?.displayName||'Home';
+  const aRecStr=awayTotal+(awayConf?' ('+awayConf+')':'');
+  const hRecStr=homeTotal+(homeConf?' ('+homeConf+')':'');
 
   const c=document.createElement('div');
   c.className='game-card is-'+st+(isUpset?' card-upset':isUdog?' card-underdog':'');
@@ -283,31 +308,34 @@ function buildCard(evt){
       '<span class="status-pill sp-'+st+'">'+{live:'● LIVE',halftime:'⏸ HLF',final:'FINAL',upcoming:'UPCOMING'}[st]+'</span>'+
       clockHtml+
     '</div>'+
+    (tournNote?'<div class="tourn-banner">🏆 '+tournNote+'</div>':'')+
     '<div class="team-row">'+
-      '<div class="t-icons"><span>'+(fav==='away'?'⭐':'')+'</span></div>'+
-      aRank+
+      getLeftBadge(away)+
       '<div class="t-info">'+
-        '<div class="t-name">'+aName+'</div>'+
-        '<div class="t-rec">'+awayTotal+(awayConf?' <span class="t-conf">'+awayConf+'</span>':'')+'</div>'+
+        '<div class="t-nameline"><span class="t-name">'+aName+'</span><span class="t-icons">'+aIcons+'</span></div>'+
+        '<div class="t-rec">'+aRecStr+'</div>'+
       '</div>'+
       '<span class="t-score '+aCls+'">'+(hasScores?aScore:'—')+'</span>'+
     '</div>'+
     '<div class="team-row">'+
-      '<div class="t-icons"><span>🏠</span><span>'+(fav==='home'?'⭐':'')+'</span></div>'+
-      hRank+
+      getLeftBadge(home)+
       '<div class="t-info">'+
-        '<div class="t-name">'+hName+'</div>'+
-        '<div class="t-rec">'+homeTotal+(homeConf?' <span class="t-conf">'+homeConf+'</span>':'')+'</div>'+
+        '<div class="t-nameline"><span class="t-name">'+hName+'</span><span class="t-icons">'+hIcons+'</span></div>'+
+        '<div class="t-rec">'+hRecStr+'</div>'+
       '</div>'+
       '<span class="t-score '+hCls+'">'+(hasScores?hScore:'—')+'</span>'+
     '</div>'+
     '<div class="card-footer">'+
-      (lineStr?'<span class="line-str">📊 '+lineStr+'</span>':'<span></span>')+
-      '<span>'+
-        (isClose?'<span class="close-alert">🔥 Close game!</span>':'')+
-        (isUpset?' <span class="upset-str">🚨 Upset alert!</span>':'')+
-        (isUdog?' <span class="udog-str">🔥 Underdog making moves!</span>':'')+
-      '</span>'+
+      (tournNote?'':'')+ // tournament banner already above
+      (locationStr?'<div class="game-location">📍 '+locationStr+'</div>':'')+
+      '<div class="card-alerts">'+
+        (lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
+        '<span>'+
+          (isClose?'<span class="close-alert">🔥 Close game!</span>':'')+
+          (isUpset?' <span class="upset-str">🚨 Upset alert!</span>':'')+
+          (isUdog?' <span class="udog-str">🔥 Underdog making moves!</span>':'')+
+        '</span>'+
+      '</div>'+
     '</div>';
   return c;
 }
@@ -328,6 +356,7 @@ function renderDash(evt){
   const pLabel=period===1?'1st Half':period===2?'2nd Half':'OT'+(period-2);
   const aName=away.team?.location||away.team?.displayName||'Away';
   const hName=home.team?.location||home.team?.displayName||'Home';
+  const neutral=!!(comp.neutralSite);
   document.getElementById('mainDashboard').innerHTML=
     '<div class="card scoreboard-card"><div class="card-header"><span class="card-title">Scoreboard</span><span class="badge badge-live">● Live</span></div>'+
     '<div class="scoreboard-inner">'+
@@ -342,7 +371,9 @@ function renderDash(evt){
         '</div></div></div>'+
       '<div class="team-block">'+(home.curatedRank?.current&&home.curatedRank.current<99?'<div class="team-rank">#'+home.curatedRank.current+'</div>':'')+
         '<div class="team-name">'+hName+'</div><div class="team-record">'+getRec(home,'total')+'</div>'+
-        '<div class="big-score" style="color:var(--accent)">'+(home.score??'—')+'</div><div class="home-ind">🏠 Home Court</div></div>'+
+        '<div class="big-score" style="color:var(--accent)">'+(home.score??'—')+'</div>'+
+        (neutral?'':'<div class="home-ind">🏠 Home Court</div>')+
+      '</div>'+
     '</div></div>'+
     '<div class="card metrics-card"><div class="card-header"><span class="card-title">📈 Advanced Metrics</span><span style="font-size:0.65rem;color:var(--muted)">Per 100 possessions</span></div>'+
       '<div class="metrics-grid">'+
@@ -390,9 +421,7 @@ async function loadGameDetails(gid){
 }
 function calcPoss(fga,fta,orb,tov){return fga-orb+tov+0.44*fta;}
 function renderBox(data){
-  const tl=data?.players||data?.teams||[];
-  const teams=Array.isArray(tl)?tl:Object.values(tl);
-  const totals=[];
+  const tl=data?.players||data?.teams||[];const teams=Array.isArray(tl)?tl:Object.values(tl);const totals=[];
   ['awayPlayers','homePlayers'].forEach((id,idx)=>{
     const el=document.getElementById(id);if(!el)return;
     const td=teams[idx];if(!td){el.innerHTML='<div style="color:var(--muted);padding:8px">No data</div>';return;}
@@ -401,8 +430,7 @@ function renderBox(data){
     let tPts=0,tFGA=0,tFTA=0,tORB=0,tTOV=0,tMin=0;
     const sorted=roster.filter(a=>a?.stats?.length>0).map(a=>{
       const s=a.stats||[];
-      tFGA+=parseInt((s[1]||'0-0').split('-')[1])||0;
-      tFTA+=parseInt((s[3]||'0-0').split('-')[1])||0;
+      tFGA+=parseInt((s[1]||'0-0').split('-')[1])||0;tFTA+=parseInt((s[3]||'0-0').split('-')[1])||0;
       tORB+=parseInt(s[11])||0;tTOV+=parseInt(s[15])||0;
       const pts=parseInt(s[18])||0;tPts+=pts;tMin+=parseFloat(s[0])||0;
       return{name:a.athlete?.shortName||'—',pos:a.athlete?.position?.abbreviation||'',min:s[0]||'0',fg:s[1]||'0-0',tp:s[4]||'0-0',reb:s[12]||'0',ast:s[13]||'0',fouls:parseInt(s[14]||0),pts};
