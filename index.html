@@ -23,15 +23,12 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .dash-col{flex:1;min-width:0;}
 .section-title{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
 .games-list{display:flex;flex-direction:column;gap:8px;}
-
-/* Game card */
 .game-card{border-radius:10px;padding:11px 13px;cursor:pointer;transition:border-color 0.2s;border:1px solid var(--border);background:var(--card);}
 .game-card:hover,.game-card.active{border-color:var(--accent);}
 .game-card.is-upcoming{border-style:dashed;opacity:0.85;}
 .game-card.is-final{opacity:0.65;}
 .game-card.card-upset{background:#0b2218;border-color:#22c55e !important;}
 .game-card.card-underdog{background:#211c00;border-color:#eab308 !important;}
-
 .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
 .status-pill{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:2px 6px;border-radius:4px;flex-shrink:0;}
 .sp-live{background:rgba(34,197,94,0.15);color:var(--green);}
@@ -42,28 +39,21 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .card-clock.halftime{color:var(--yellow);}
 .card-clock.final{color:var(--muted);font-size:0.75rem;font-weight:400;}
 .card-clock.upcoming{color:var(--accent2);font-size:0.72rem;font-weight:600;}
-
-/* Tournament banner */
 .tourn-banner{font-size:0.62rem;font-weight:600;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* Team rows */
 .team-row{display:flex;align-items:center;gap:5px;padding:4px 0;}
 .team-row+.team-row{border-top:1px solid rgba(30,45,69,0.7);}
-.t-left{display:flex;align-items:center;gap:5px;flex:1;min-width:0;}
-.t-badge{min-width:22px;text-align:center;flex-shrink:0;font-size:0.75rem;}
-.t-badge.rank-badge{font-weight:900;color:#fff;}
-.t-badge.seed-badge{font-weight:400;color:#fff;font-size:0.7rem;}
+.t-badge{min-width:22px;text-align:center;flex-shrink:0;font-size:0.72rem;}
+.t-badge.rank-b{font-weight:900;color:#fff;}
+.t-badge.seed-b{font-weight:400;color:#fff;}
 .t-info{flex:1;min-width:0;}
 .t-nameline{display:flex;align-items:center;gap:4px;}
 .t-name{font-size:0.73rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.t-icons{font-size:0.75rem;flex-shrink:0;white-space:nowrap;}
+.t-fav{font-size:0.75rem;flex-shrink:0;}
 .t-rec{font-size:0.6rem;color:var(--muted);margin-top:1px;}
 .t-score{font-size:1.25rem;font-weight:900;min-width:34px;text-align:right;flex-shrink:0;}
 .s-win{color:var(--green);}
 .s-tie{color:var(--accent2);}
 .s-lose{color:var(--text);}
-
-/* Footer */
 .card-footer{margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);font-size:0.62rem;}
 .game-location{color:var(--muted);margin-bottom:3px;}
 .card-alerts{display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;align-items:center;margin-top:2px;}
@@ -72,8 +62,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .upset-str{color:var(--green);font-weight:700;}
 .udog-str{color:var(--yellow);font-weight:700;}
 @keyframes flash{0%,100%{opacity:1}50%{opacity:0.15}}
-
-/* Dashboard */
 .dashboard{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -168,19 +156,24 @@ function saveApiKey(){KEY=document.getElementById('apiKeyInput').value.trim();lo
 function refreshAll(){loadGames();if(selGameId)loadGameDetails(selGameId);}
 function showErr(m){const b=document.getElementById('errorBox');b.style.display='block';b.textContent='⚠️ '+m;setTimeout(()=>b.style.display='none',8000);}
 async function api(path){const r=await fetch('https://'+HOST+path,{headers:{'x-rapidapi-host':HOST,'x-rapidapi-key':KEY}});if(!r.ok)throw new Error('API '+r.status);return r.json();}
-
 function getRec(team,type){return team?.records?.find(r=>r.type===type)?.summary||'';}
 function winPct(rec){if(!rec)return 0.5;const p=rec.split('-');const w=parseInt(p[0])||0,l=parseInt(p[1])||0;return(w+l)===0?0.5:w/(w+l);}
+
+// Returns 'away' or 'home' — betting line is primary, win% is fallback
 function getFav(away,home,comp){
   const odds=comp?.odds?.[0];
   if(odds){
-    if(odds.awayTeamOdds?.favorite===true)return'away';
-    if(odds.homeTeamOdds?.favorite===true)return'home';
+    // Best signal: explicit favorite boolean on each team's odds
+    if(odds.awayTeamOdds?.favorite===true) return 'away';
+    if(odds.homeTeamOdds?.favorite===true) return 'home';
+    // Second: spread value (negative = home is favored in ESPN convention)
     const sp=parseFloat(odds.spread);
-    if(!isNaN(sp))return sp<0?'home':'away';
+    if(!isNaN(sp)) return sp<0?'home':'away';
   }
+  // Fallback: win%
   return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?'away':'home';
 }
+
 function estimateLine(away,home){
   const ap=winPct(getRec(away,'total')),hp=winPct(getRec(home,'total'));
   const diff=(hp-ap)*100;if(Math.abs(diff)<2)return null;
@@ -206,22 +199,14 @@ async function loadGames(){
   try{
     const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
     const base='/mbb/scoreboard?year='+y+'&month='+m+'&day='+d;
-    const [r1,r2,r3]=await Promise.allSettled([
-      api(base+'&seasontype=2'),
-      api(base+'&seasontype=3'),
-      api(base+'&seasontype=4')
-    ]);
+    const [r1,r2,r3]=await Promise.allSettled([api(base+'&seasontype=2'),api(base+'&seasontype=3'),api(base+'&seasontype=4')]);
     const e1=r1.status==='fulfilled'?r1.value?.events||[]:[];
     const e2=r2.status==='fulfilled'?r2.value?.events||[]:[];
     const e3=r3.status==='fulfilled'?r3.value?.events||[]:[];
+    e1.forEach(e=>e._stype=2);e2.forEach(e=>e._stype=3);e3.forEach(e=>e._stype=4);
     const ids1=new Set(e1.map(e=>e.id));
     const ids12=new Set([...ids1,...e2.map(e=>e.id)]);
-    // Tag season type on each event
-    e1.forEach(e=>e._stype=2);
-    e2.forEach(e=>e._stype=3);
-    e3.forEach(e=>e._stype=4);
-    const all=[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))];
-    renderList({events:all});
+    renderList({events:[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))]});
   }catch(e){
     document.getElementById('gamesList').innerHTML='<div style="color:var(--red);padding:8px">Error: '+e.message+'</div>';
     showErr('Failed: '+e.message);
@@ -237,17 +222,20 @@ function renderList(data){
 
 function buildCard(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
-  const home=teams.find(t=>t.homeAway==='home')||teams[0]||{};
-  const away=teams.find(t=>t.homeAway==='away')||teams[1]||{};
+  const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
+  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{};
   const gid=evt.id||evt.gameId;
   const st=getStatus(evt);
   const neutral=!!(comp.neutralSite);
-  const stype=evt._stype||2; // 2=reg, 3=conf tourn, 4=NCAA
+  const stype=evt._stype||2;
 
   const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
   const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
   const isTie=hasScores&&aScore===hScore;
-  const fav=getFav(away,home,comp);
+
+  // Favorite from betting line (primary) or win% (fallback)
+  const fav=getFav(away,home,comp); // 'away' or 'home'
+
   const udogWin=hasScores&&((fav==='home'&&aScore>hScore)||(fav==='away'&&hScore>aScore));
   const det=(evt.status?.type?.shortDetail||'').toLowerCase();
   const in2nd=det.includes('2nd')||det.includes('ot');
@@ -256,7 +244,6 @@ function buildCard(evt){
   const secs=clockSecs(evt.status?.displayClock);
   const isClose=hasScores&&in2nd&&secs<=300&&Math.abs(aScore-hScore)<8&&st==='live';
 
-  // Records
   const awayTotal=getRec(away,'total'),homeTotal=getRec(home,'total');
   const awayConf=getRec(away,'vsconf'),homeConf=getRec(home,'vsconf');
 
@@ -266,36 +253,35 @@ function buildCard(evt){
   if(apiOdds?.details) lineStr=apiOdds.details+(apiOdds.overUnder?' · O/U '+apiOdds.overUnder:'');
   else lineStr=estimateLine(away,home)||'';
 
-  // Location city, state
-  const venue=comp?.venue;
-  const city=venue?.address?.city,state=venue?.address?.state;
+  // Location
+  const city=comp?.venue?.address?.city,state=comp?.venue?.address?.state;
   const locationStr=(city&&state)?city+', '+state:(city||'');
 
-  // Tournament name/round from notes
+  // Tournament note
   const tournNote=comp?.notes?.[0]?.headline||'';
 
   // Score colors
   const aCls=isTie?'s-tie':(aScore>hScore?'s-win':'s-lose');
   const hCls=isTie?'s-tie':(hScore>aScore?'s-win':'s-lose');
 
-  // Badge left of name: rank (reg season, bold) or seed (tournament, normal)
-  // stype=2: show AP rank if top 25 in bold white
-  // stype=3/4: show seed in normal white
-  function getLeftBadge(team){
-    const rank=team.curatedRank?.current;
-    const seed=team.seed;
-    if((stype===3||stype===4)&&seed){
-      return '<span class="t-badge seed-badge">'+seed+'</span>';
-    }
-    if(stype===2&&rank&&rank<26){
-      return '<span class="t-badge rank-badge">'+rank+'</span>';
-    }
+  // Left badge: seed for tournaments, AP rank for reg season
+  function leftBadge(team){
+    if((stype===3||stype===4)&&team.seed) return '<span class="t-badge seed-b">'+team.seed+'</span>';
+    const rk=team.curatedRank?.current;
+    if(stype===2&&rk&&rk<26) return '<span class="t-badge rank-b">'+rk+'</span>';
     return '<span class="t-badge"></span>';
   }
 
-  // Icons right of name: home + star (neutral = no home)
-  const aIcons=(fav==='away'?' ⭐':'');
-  const hIcons=(neutral?'':(fav==='home'?' 🏠⭐':' 🏠'));
+  // Favorite star — always shown on the favored team
+  // Home icon — only on home team, only on non-neutral games
+  const aFav=fav==='away';
+  const hFav=fav==='home';
+  const aFavHtml=aFav?'<span class="t-fav"> ⭐</span>':'';
+  const hFavHtml=hFav?'<span class="t-fav"> ⭐</span>':'';
+  const hHomeHtml=neutral?'':(hFav?'<span class="t-fav"> 🏠</span>':'<span class="t-fav"> 🏠</span>');
+  // Simpler: home icon always on home team (non-neutral), star always on fav team
+  const aIcons=aFavHtml;
+  const hIcons=(neutral?'':'<span class="t-fav"> 🏠</span>')+hFavHtml;
 
   // Clock
   let clockHtml='';
@@ -319,30 +305,29 @@ function buildCard(evt){
     '</div>'+
     (tournNote?'<div class="tourn-banner">🏆 '+tournNote+'</div>':'')+
     '<div class="team-row">'+
-      getLeftBadge(away)+
+      leftBadge(away)+
       '<div class="t-info">'+
-        '<div class="t-nameline"><span class="t-name">'+aName+'</span><span class="t-icons">'+aIcons+'</span></div>'+
+        '<div class="t-nameline"><span class="t-name">'+aName+'</span>'+aIcons+'</div>'+
         '<div class="t-rec">'+aRecStr+'</div>'+
       '</div>'+
       '<span class="t-score '+aCls+'">'+(hasScores?aScore:'—')+'</span>'+
     '</div>'+
     '<div class="team-row">'+
-      getLeftBadge(home)+
+      leftBadge(home)+
       '<div class="t-info">'+
-        '<div class="t-nameline"><span class="t-name">'+hName+'</span><span class="t-icons">'+hIcons+'</span></div>'+
+        '<div class="t-nameline"><span class="t-name">'+hName+'</span>'+hIcons+'</div>'+
         '<div class="t-rec">'+hRecStr+'</div>'+
       '</div>'+
       '<span class="t-score '+hCls+'">'+(hasScores?hScore:'—')+'</span>'+
     '</div>'+
     '<div class="card-footer">'+
-      (tournNote?'':'')+ // tournament banner already above
       (locationStr?'<div class="game-location">📍 '+locationStr+'</div>':'')+
       '<div class="card-alerts">'+
         (lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
         '<span>'+
-          (isClose?'<span class="close-alert">🔥 Close game!</span>':'')+
+          (isClose?'<span class="close-alert">🔥 Close!</span>':'')+
           (isUpset?' <span class="upset-str">🚨 Upset alert!</span>':'')+
-          (isUdog?' <span class="udog-str">🔥 Underdog making moves!</span>':'')+
+          (isUdog?' <span class="udog-str">🔥 Underdog moving!</span>':'')+
         '</span>'+
       '</div>'+
     '</div>';
@@ -359,8 +344,8 @@ async function selectGame(gid,evt,card){
 
 function renderDash(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
-  const home=teams.find(t=>t.homeAway==='home')||teams[0]||{};
-  const away=teams.find(t=>t.homeAway==='away')||teams[1]||{};
+  const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
+  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{};
   const clock=evt.status?.displayClock||'--:--',period=evt.status?.period||1;
   const pLabel=period===1?'1st Half':period===2?'2nd Half':'OT'+(period-2);
   const aName=away.team?.location||away.team?.displayName||'Away';
