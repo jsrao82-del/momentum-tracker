@@ -171,7 +171,16 @@ async function api(path){const r=await fetch('https://'+HOST+path,{headers:{'x-r
 
 function getRec(team,type){return team?.records?.find(r=>r.type===type)?.summary||'';}
 function winPct(rec){if(!rec)return 0.5;const p=rec.split('-');const w=parseInt(p[0])||0,l=parseInt(p[1])||0;return(w+l)===0?0.5:w/(w+l);}
-function getFav(away,home){return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?'away':'home';}
+function getFav(away,home,comp){
+  const odds=comp?.odds?.[0];
+  if(odds){
+    if(odds.awayTeamOdds?.favorite===true)return away;
+    if(odds.homeTeamOdds?.favorite===true)return home;
+    const sp=parseFloat(odds.spread);
+    if(!isNaN(sp))return sp<0?home:away;
+  }
+  return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?away:home;
+}
 function estimateLine(away,home){
   const ap=winPct(getRec(away,'total')),hp=winPct(getRec(home,'total'));
   const diff=(hp-ap)*100;if(Math.abs(diff)<2)return null;
