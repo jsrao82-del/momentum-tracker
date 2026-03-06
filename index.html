@@ -174,12 +174,12 @@ function winPct(rec){if(!rec)return 0.5;const p=rec.split('-');const w=parseInt(
 function getFav(away,home,comp){
   const odds=comp?.odds?.[0];
   if(odds){
-    if(odds.awayTeamOdds?.favorite===true)return away;
-    if(odds.homeTeamOdds?.favorite===true)return home;
+    if(odds.awayTeamOdds?.favorite===true)return'away';
+    if(odds.homeTeamOdds?.favorite===true)return'home';
     const sp=parseFloat(odds.spread);
-    if(!isNaN(sp))return sp<0?home:away;
+    if(!isNaN(sp))return sp<0?'home':'away';
   }
-  return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?away:home;
+  return winPct(getRec(away,'total'))>winPct(getRec(home,'total'))?'away':'home';
 }
 function estimateLine(away,home){
   const ap=winPct(getRec(away,'total')),hp=winPct(getRec(home,'total'));
