@@ -537,18 +537,21 @@ function renderTopScorers(boxData){
     let rows='';
     withPts.forEach((p,i)=>{
       const injInfo=injMap[p.id]||null;
-      const ppm=p.min>0?(p.pts/p.min).toFixed(2):p.pts>0?'—':'—';
-      // Expected: player's share of team scoring at a 1.75 ppm team pace
-      const share=totalPts>0?p.pts/totalPts:0;
-      const expPPM=(1.75*share*3); // rough expected for top scorer
+      // PPM = pts per minute played THIS game
       const actualPPM=p.min>0?(p.pts/p.min):0;
-      const projPts=actualPPM>0?(actualPPM*minsPlayed).toFixed(0):'—';
+      // Projected final = current pace × total expected minutes (32 avg for starter, 22 for bench)
+      const expMins=p.starter?32:22;
+      const projPts=actualPPM>0?(actualPPM*expMins).toFixed(0):'—';
+      // Pace: compare their pts-per-min to team's pts-per-min average
+      const teamPPM=minsPlayed>0?(totalPts/(active.reduce((s,a)=>s+(parseFloat(a.stats?.[0])||0),0)||1)):0;
+      const playerShareOfTeam=totalPts>0?(p.pts/totalPts):0;
+      // A top scorer should be above their fair share pace
+      const fairSharePPM=teamPPM*active.length*playerShareOfTeam;
       let perfClass='perf-avg',perfLabel='';
-      if(p.min>2&&minsPlayed>2){
-        const ratio=actualPPM/(expPPM||0.5);
-        if(ratio>=1.15){perfClass='perf-over';perfLabel='▲ On pace';}
-        else if(ratio<=0.75){perfClass='perf-under';perfLabel='▼ Below pace';}
-        else{perfClass='perf-avg';perfLabel='→ On pace';}
+      if(p.min>=5){
+        if(actualPPM>0.55){perfClass='perf-over';perfLabel='🔥 Hot';}
+        else if(actualPPM>0.40){perfClass='perf-avg';perfLabel='→ Avg pace';}
+        else if(actualPPM>0){perfClass='perf-under';perfLabel='▼ Slow';}
       }
       const startTag=p.starter?'<span class="starter-tag">(starter)</span>':'';
       const injTag=injInfo?'<span class="inj-alert">⚠️ '+injInfo.status+'</span>':'';
@@ -557,7 +560,7 @@ function renderTopScorers(boxData){
         <div class="scorer-info">
           <div class="scorer-name">${p.name} ${startTag} ${injTag}</div>
           <div class="scorer-sub">${p.fg} FG · ${p.tp} 3PT · ${p.ft} FT</div>
-          <div class="scorer-sub ${perfClass}">${ppm} PPM · Proj: ${projPts} pts ${perfLabel}</div>
+          <div class="scorer-sub ${perfClass}">Proj ~${projPts} pts this game ${perfLabel}</div>
         </div>
         <div style="text-align:right">
           <div class="scorer-pts">${p.pts}</div>
