@@ -183,6 +183,24 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 const HOST='sports-information.p.rapidapi.com';
 let KEY=localStorage.getItem('mt_key')||'';
 let selGameId=null,autoTimer=null,selEvt=null,injuryData=[];
+// Snapshot store: { [gameId]: { away: {t0,t5,...}, home: {t0,t5,...} } }
+// Keys are minutes elapsed: 0,5,10,15,20,25,30,35,40
+const ffSnapshots={};
+const FF_INTERVALS=[0,5,10,15,20,25,30,35,40];
+function getSnapKey(mins){ // returns the interval label this reading belongs to
+  for(let i=FF_INTERVALS.length-1;i>=0;i--){if(mins>=FF_INTERVALS[i])return FF_INTERVALS[i];}
+  return 0;
+}
+function saveSnapshot(gameId,mins,awayFF,homeFF){
+  if(!gameId)return;
+  if(!ffSnapshots[gameId])ffSnapshots[gameId]={away:{},home:{}};
+  const key=getSnapKey(mins);
+  // Only save once per interval (don't overwrite)
+  if(ffSnapshots[gameId].away[key]===undefined){
+    ffSnapshots[gameId].away[key]={eFG:awayFF.eFG,tovPct:awayFF.tovPct,orebPct:awayFF.orebPct,ftRate:awayFF.ftRate};
+    ffSnapshots[gameId].home[key]={eFG:homeFF.eFG,tovPct:homeFF.tovPct,orebPct:homeFF.orebPct,ftRate:homeFF.ftRate};
+  }
+}
 window.addEventListener('load',()=>{if(KEY){document.getElementById('apiKeyInput').value=KEY;loadGames();loadInjuries();}});
 function saveApiKey(){KEY=document.getElementById('apiKeyInput').value.trim();localStorage.setItem('mt_key',KEY);loadGames();loadInjuries();}
 function refreshAll(){loadGames();if(selGameId)loadGameDetails(selGameId);}
@@ -484,6 +502,32 @@ function drawScoringChart(awayPts,homePts,halftimeIdx){
 // TOV% = TOV / (FGA + 0.44*FTA + TOV)   — ball security
 // OREB% = OREB / (OREB + OppDREB)        — 2nd chance rate
 // FT Rate = FTM / FGA                    — getting to the line
+
+function getGrade(factor,val){
+  const scales={
+    eFG:   [{v:58,g:'A+'},{v:55,g:'A'},{v:53,g:'A-'},{v:51,g:'B+'},{v:49,g:'B'},{v:47,g:'B-'},{v:45,g:'C+'},{v:43,g:'C'},{v:40,g:'D'},{v:0,g:'F'}],
+    tov:   [{v:88,g:'F'},{v:74,g:'D'},{v:26,g:'F'}], // handled inverted below
+    oreb:  [{v:40,g:'A+'},{v:37,g:'A'},{v:35,g:'A-'},{v:32,g:'B+'},{v:29,g:'B'},{v:26,g:'B-'},{v:23,g:'C+'},{v:20,g:'C'},{v:15,g:'D'},{v:0,g:'F'}],
+    ftRate:[{v:50,g:'A+'},{v:45,g:'A'},{v:42,g:'A-'},{v:38,g:'B+'},{v:34,g:'B'},{v:30,g:'B-'},{v:26,g:'C+'},{v:22,g:'C'},{v:17,g:'D'},{v:0,g:'F'}],
+  };
+  // TOV is inverted — lower is better
+  if(factor==='tov'){
+    if(val<12)return'A+';if(val<14)return'A';if(val<16)return'A-';
+    if(val<18)return'B+';if(val<20)return'B';if(val<22)return'B-';
+    if(val<24)return'C+';if(val<26)return'C';if(val<30)return'D';return'F';
+  }
+  const sc=scales[factor]||scales.eFG;
+  for(const s of sc){if(val>=s.v)return s.g;}
+  return'F';
+}
+function gradeColor(g){
+  if(g==='A+'||g==='A')return'#22c55e';
+  if(g==='A-'||g==='B+')return'#86efac';
+  if(g==='B'||g==='B-')return'#eab308';
+  if(g==='C+'||g==='C')return'#f97316';
+  return'#ef4444';
+}
+
 function calcFourFactors(stats, oppStats){
   function gs(st,name){const s=(st||[]).find(x=>x.name===name);return parseFloat(s?.displayValue||s?.value||0)||0;}
   function parseFrac(v){const p=(v||'0-0').toString().split('-');return{m:parseInt(p[0])||0,a:parseInt(p[1])||0};}
@@ -510,13 +554,15 @@ function renderFourFactors(summData, boxData){
   const comp=selEvt.competitions?.[0]||selEvt,teams=comp.competitors||[];
   const awayComp=teams.find(t=>t.homeAway==='away')||teams[0]||{};
   const homeComp=teams.find(t=>t.homeAway==='home')||teams[1]||{};
-  const aName=awayComp.team?.abbreviation||'Away';
-  const hName=homeComp.team?.abbreviation||'Home';
+  const aName=awayComp.team?.displayName||'Away';
+  const hName=homeComp.team?.displayName||'Home';
+  const aAbbr=awayComp.team?.abbreviation||'AWY';
+  const hAbbr=homeComp.team?.abbreviation||'HME';
   const boxTeams=summData?.boxScore?.teams||boxData?.teams||[];
   const aTeam=boxTeams.find(t=>t.homeAway==='away'||t.displayOrder===1)||boxTeams[0]||{};
   const hTeam=boxTeams.find(t=>t.homeAway==='home'||t.displayOrder===2)||boxTeams[1]||{};
   const aStats=aTeam.statistics||[];const hStats=hTeam.statistics||[];
-  // Update bonus pills while we have fouls data
+  // Bonus pills
   ['away','home'].forEach(side=>{
     const st=side==='away'?aStats:hStats;
     const fouls=parseFloat((st.find(s=>s.name==='fouls')||{}).displayValue||0)||0;
@@ -526,89 +572,115 @@ function renderFourFactors(summData, boxData){
   });
   const aFF=calcFourFactors(aStats,hStats);
   const hFF=calcFourFactors(hStats,aStats);
-  // Determine winner of each factor
-  const aWinsEFG=aFF.eFG>=hFF.eFG;
-  const aWinsTOV=aFF.tovPct<=hFF.tovPct; // lower is better
-  const aWinsOREB=aFF.orebPct>=hFF.orebPct;
-  const aWinsFT=aFF.ftRate>=hFF.ftRate;
-  const aFactorWins=[aWinsEFG,aWinsTOV,aWinsOREB,aWinsFT].filter(Boolean).length;
-  const hFactorWins=4-aFactorWins;
-  function factorColor(val, good, bad, lowerIsBetter=false){
-    if(lowerIsBetter)return val<=good?'var(--green)':val>=bad?'var(--red)':'var(--yellow)';
-    return val>=good?'var(--green)':val<=bad?'var(--red)':'var(--yellow)';
-  }
-  function ffRow(label,desc,aVal,hVal,aWins,goodThresh,badThresh,lowerBetter=false,suffix='%',maxBar=100){
-    const aColor=factorColor(aVal,goodThresh,badThresh,lowerBetter);
-    const hColor=factorColor(hVal,goodThresh,badThresh,lowerBetter);
-    const aPct=Math.min(aVal/maxBar*100,100);const hPct=Math.min(hVal/maxBar*100,100);
-    return `
-    <div class="ff-row">
-      <div>
-        <div class="ff-factor-name">${label}</div>
-        <div class="ff-factor-desc">${desc}</div>
-        <div class="ff-bar-wrap"><div class="ff-bar-bg"><div class="ff-bar-fill" style="width:${aPct}%;background:${aColor}"></div></div></div>
-      </div>
-      <div style="text-align:right;padding-left:12px">
-        <div class="ff-val" style="color:${aColor}">${aVal.toFixed(1)}${suffix}</div>
-        <div class="ff-winner" style="color:${aWins?'var(--green)':'var(--muted)'}">
-          ${aWins?'✓ Edge':''}
+  // Save snapshot
+  const mins=minsElapsed(selEvt);
+  saveSnapshot(selGameId,mins,aFF,hFF);
+  // Grades
+  const factors=[
+    {key:'eFG',   label:'Shooting the Ball',       aVal:aFF.eFG,    hVal:hFF.eFG,    fmt:v=>v.toFixed(1)+'%', lowerBetter:false},
+    {key:'tov',   label:'Taking Care of the Ball',  aVal:aFF.tovPct, hVal:hFF.tovPct, fmt:v=>v.toFixed(1)+'%', lowerBetter:true},
+    {key:'oreb',  label:'Offensive Rebounding',     aVal:aFF.orebPct,hVal:hFF.orebPct,fmt:v=>v.toFixed(1)+'%', lowerBetter:false},
+    {key:'ftRate',label:'Getting to the Foul Line', aVal:aFF.ftRate, hVal:hFF.ftRate, fmt:v=>v.toFixed(1)+'%', lowerBetter:false},
+  ];
+  // ── Box score table ───────────────────────────────────────────────────────
+  let tableHtml=`
+  <div style="overflow-x:auto;margin-bottom:18px">
+  <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;min-width:80px">Team</th>
+        ${factors.map(f=>'<th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;min-width:110px">'+f.label+'</th>').join('')}
+      </tr>
+    </thead>
+    <tbody>
+  `;
+  [
+    {name:aAbbr, fullName:aName, color:'var(--accent2)', vals:factors.map(f=>({key:f.key,val:f.aVal,fmt:f.fmt}))},
+    {name:hAbbr, fullName:hName, color:'var(--accent)',  vals:factors.map(f=>({key:f.key,val:f.hVal,fmt:f.fmt}))},
+  ].forEach(team=>{
+    tableHtml+=`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 10px;font-weight:700;color:${team.color}">${team.name}</td>
+      ${team.vals.map(v=>{
+        const g=getGrade(v.key,v.val);const gc=gradeColor(g);
+        return `<td style="text-align:center;padding:10px">
+          <span style="font-size:1rem;font-weight:900;color:var(--text)">${v.fmt(v.val)}</span>
+          <span style="display:inline-block;margin-left:6px;font-size:0.75rem;font-weight:800;color:${gc};background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:4px;border:1px solid ${gc}40">${g}</span>
+        </td>`;
+      }).join('')}
+    </tr>`;
+  });
+  tableHtml+=`</tbody></table></div>`;
+  // ── Trend charts (one per factor) ────────────────────────────────────────
+  const snaps=ffSnapshots[selGameId]||{away:{},home:{}};
+  const capturedKeys=Object.keys(snaps.away).map(Number).sort((a,b)=>a-b);
+  let chartsHtml='';
+  if(capturedKeys.length>=2){
+    chartsHtml='<div style="margin-top:4px"><div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Factor Trends — every 5 min</div>';
+    chartsHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    factors.forEach(f=>{
+      chartsHtml+=`<div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;font-weight:600">${f.label}</div>
+        <canvas id="ffChart_${f.key}" style="width:100%;height:70px;display:block"></canvas>
+        <div style="display:flex;gap:12px;margin-top:3px;font-size:0.6rem">
+          <span><span style="display:inline-block;width:8px;height:2px;background:var(--accent2);margin-right:3px;vertical-align:middle"></span>${aAbbr}</span>
+          <span><span style="display:inline-block;width:8px;height:2px;background:var(--accent);margin-right:3px;vertical-align:middle"></span>${hName}</span>
         </div>
-      </div>
-    </div>
-    `;
+      </div>`;
+    });
+    chartsHtml+='</div></div>';
+  } else if(capturedKeys.length===1){
+    chartsHtml='<div style="font-size:0.68rem;color:var(--muted);padding:6px 0">Trend chart builds as game progresses — next snapshot at '+(FF_INTERVALS[FF_INTERVALS.indexOf(capturedKeys[0])+1]||'—')+' min mark</div>';
   }
-  function hffRow(label,desc,aVal,hVal,hWins,goodThresh,badThresh,lowerBetter=false,suffix='%',maxBar=100){
-    const aColor=factorColor(aVal,goodThresh,badThresh,lowerBetter);
-    const hColor=factorColor(hVal,goodThresh,badThresh,lowerBetter);
-    const hPct=Math.min(hVal/maxBar*100,100);
-    return `
-    <div class="ff-row">
-      <div>
-        <div class="ff-factor-name">${label}</div>
-        <div class="ff-factor-desc">${desc}</div>
-        <div class="ff-bar-wrap"><div class="ff-bar-bg"><div class="ff-bar-fill" style="width:${hPct}%;background:${hColor}"></div></div></div>
-      </div>
-      <div style="text-align:right;padding-left:12px">
-        <div class="ff-val" style="color:${hColor}">${hVal.toFixed(1)}${suffix}</div>
-        <div class="ff-winner" style="color:${hWins?'var(--green)':'var(--muted)'}">
-          ${hWins?'✓ Edge':''}
-        </div>
-      </div>
-    </div>
-    `;
+  el.innerHTML=tableHtml+chartsHtml;
+  // Draw charts after render
+  if(capturedKeys.length>=2){
+    setTimeout(()=>{
+      factors.forEach(f=>{
+        const canvas=document.getElementById('ffChart_'+f.key);
+        if(!canvas)return;
+        const W=canvas.offsetWidth||400,H=70;
+        canvas.width=W;canvas.height=H;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+        const aVals=capturedKeys.map(k=>snaps.away[k]?.[f.key==='eFG'?'eFG':f.key==='tov'?'tovPct':f.key==='oreb'?'orebPct':'ftRate']||0);
+        const hVals=capturedKeys.map(k=>snaps.home[k]?.[f.key==='eFG'?'eFG':f.key==='tov'?'tovPct':f.key==='oreb'?'orebPct':'ftRate']||0);
+        const allVals=[...aVals,...hVals];
+        const minV=Math.max(0,Math.min(...allVals)-5);
+        const maxV=Math.max(...allVals)+5;
+        const pad={l:4,r:4,t:6,b:6};
+        const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+        const n=capturedKeys.length;
+        const xOf=i=>pad.l+(i/(n-1||1))*cW;
+        const yOf=v=>pad.t+cH-((v-minV)/(maxV-minV||1))*cH;
+        // Halftime line at min 20
+        const htIdx=capturedKeys.indexOf(20);
+        if(htIdx>=0){
+          ctx.strokeStyle='rgba(100,116,139,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+          ctx.beginPath();ctx.moveTo(xOf(htIdx),pad.t);ctx.lineTo(xOf(htIdx),H-pad.b);ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        function drawLine(vals,color){
+          if(vals.length<2)return;
+          ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';
+          vals.forEach((v,i)=>i===0?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v)));
+          ctx.stroke();
+          // Dot at last point
+          ctx.beginPath();ctx.fillStyle=color;ctx.arc(xOf(vals.length-1),yOf(vals[vals.length-1]),3,0,Math.PI*2);ctx.fill();
+          // Grade label at last point
+          const g=getGrade(f.key,vals[vals.length-1]);const gc=gradeColor(g);
+          ctx.fillStyle=gc;ctx.font='bold 9px system-ui';ctx.textAlign='left';
+          ctx.fillText(g,xOf(vals.length-1)+5,yOf(vals[vals.length-1])+3);
+        }
+        drawLine(aVals,'#3b82f6');
+        drawLine(hVals,'#f97316');
+        // x-axis labels
+        ctx.fillStyle='rgba(100,116,139,0.6)';ctx.font='8px system-ui';ctx.textAlign='center';
+        capturedKeys.forEach((k,i)=>{
+          if(i===0||i===capturedKeys.length-1||k%10===0)ctx.fillText(k+'m',xOf(i),H-1);
+        });
+      });
+    },100);
   }
-  el.innerHTML=`
-  <div style="display:grid;grid-template-columns:1fr 2px 1fr;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-    <div>
-      <div class="ff-team-header" style="color:var(--accent2);background:rgba(59,130,246,0.05)">
-        ${aName} <span style="font-size:0.6rem;color:var(--muted);font-weight:400;margin-left:6px">${aFactorWins}/4 factors</span>
-      </div>
-      <div class="ff-rows">
-        ${ffRow('Shooting the Ball','eFG% = (FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,aWinsEFG,52,44,false,'%',80)}
-        ${ffRow('Taking Care of the Ball','TOV% = TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,aWinsTOV,15,22,true,'%',35)}
-        ${ffRow('Offensive Rebounding','OREB% = OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,aWinsOREB,33,22,false,'%',60)}
-        ${ffRow('Getting to the Foul Line','FT Rate = FTA / FGA',aFF.ftRate,hFF.ftRate,aWinsFT,30,15,false,'%',60)}
-      </div>
-    </div>
-    <div style="background:var(--border)"></div>
-    <div>
-      <div class="ff-team-header" style="color:var(--accent);background:rgba(249,115,22,0.05)">
-        ${hName} <span style="font-size:0.6rem;color:var(--muted);font-weight:400;margin-left:6px">${hFactorWins}/4 factors</span>
-      </div>
-      <div class="ff-rows">
-        ${hffRow('Shooting the Ball','eFG% = (FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,!aWinsEFG,52,44,false,'%',80)}
-        ${hffRow('Taking Care of the Ball','TOV% = TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,!aWinsTOV,15,22,true,'%',35)}
-        ${hffRow('Offensive Rebounding','OREB% = OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,!aWinsOREB,33,22,false,'%',60)}
-        ${hffRow('Getting to the Foul Line','FT Rate = FTA / FGA',aFF.ftRate,hFF.ftRate,!aWinsFT,30,15,false,'%',60)}
-      </div>
-    </div>
-  </div>
-  <div class="ff-legend">
-    <span><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span> Good (college avg)</span>
-    <span><span style="width:8px;height:8px;border-radius:50%;background:var(--yellow);display:inline-block"></span> Average</span>
-    <span><span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block"></span> Below avg</span>
-    <span style="margin-left:auto;color:var(--text);font-weight:600">eFG% ~52 · TOV% ~17 · OREB% ~28 · FT Rate ~25 (D1 avg)</span>
-  </div>`;
 }
 
 // ---- TOP SCORERS with correct game-pace PPM ----
