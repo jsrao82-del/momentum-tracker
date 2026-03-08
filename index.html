@@ -86,7 +86,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .period-lbl{font-size:0.7rem;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;}
 /* Scoring chart */
 .legend-dot{width:10px;height:3px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle;}
-/* Four Factors */
+/* Report Card / Four Factors */
 .ff-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .ff-team-header{padding:10px 14px;font-size:0.75rem;font-weight:700;border-bottom:1px solid var(--border);}
 .ff-rows{padding:0 14px 10px;}
@@ -439,7 +439,7 @@ function renderDash(evt){
       '<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--muted);margin-top:4px;padding:0 4px"><span>Start</span><span>Halftime</span><span>Now</span></div></div>'+
     '<div class="card full-width"><div class="card-header"><span class="card-title">🏆 Top 3 Scorers</span><span style="font-size:0.62rem;color:var(--muted)">Current game · pts per min pace</span></div>'+
       '<div class="scorers-grid" id="scorersGrid"><div class="loading"><div class="spinner"></div></div></div></div>'+
-    '<div class="card full-width"><div class="card-header"><span class="card-title">📊 Four Factors</span>'+
+    '<div class="card full-width"><div class="card-header"><span class="card-title">📊 Report Card</span>'+
       '<div style="font-size:0.62rem;color:var(--muted)">eFG% · TOV% · OREB% · FT Rate</div></div>'+
       '<div id="fourFactors"><div class="loading"><div class="spinner"></div></div></div></div>'+
     '<div class="card"><div class="card-header"><span class="card-title">📋 '+aName+'</span><span class="badge-foul">Foul Watch</span></div><div id="awayPlayers"><div class="loading"><div class="spinner"></div></div></div></div>'+
@@ -501,7 +501,7 @@ function calcFourFactors(stats, oppStats){
   const eFG=fg.a>0?((fg.m+0.5*tp.m)/fg.a)*100:0;
   const tovPct=((fg.a+0.44*ft.a+tov)>0)?(tov/(fg.a+0.44*ft.a+tov))*100:0;
   const orebPct=(oreb+oppDreb)>0?(oreb/(oreb+oppDreb))*100:0;
-  const ftRate=fg.a>0?(ft.m/fg.a)*100:0;
+  const ftRate=fg.a>0?(ft.a/fg.a)*100:0;
   return{eFG,tovPct,orebPct,ftRate,fg,ft,tp,tov,oreb,dreb};
 }
 function renderFourFactors(summData, boxData){
@@ -584,10 +584,10 @@ function renderFourFactors(summData, boxData){
         ${aName} <span style="font-size:0.6rem;color:var(--muted);font-weight:400;margin-left:6px">${aFactorWins}/4 factors</span>
       </div>
       <div class="ff-rows">
-        ${ffRow('eFG%','(FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,aWinsEFG,52,44,false,'%',80)}
-        ${ffRow('TOV%','TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,aWinsTOV,15,22,true,'%',35)}
-        ${ffRow('OREB%','OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,aWinsOREB,33,22,false,'%',60)}
-        ${ffRow('FT Rate','FTM / FGA',aFF.ftRate,hFF.ftRate,aWinsFT,30,15,false,'%',60)}
+        ${ffRow('Shooting the Ball','eFG% = (FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,aWinsEFG,52,44,false,'%',80)}
+        ${ffRow('Taking Care of the Ball','TOV% = TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,aWinsTOV,15,22,true,'%',35)}
+        ${ffRow('Offensive Rebounding','OREB% = OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,aWinsOREB,33,22,false,'%',60)}
+        ${ffRow('Getting to the Foul Line','FT Rate = FTA / FGA',aFF.ftRate,hFF.ftRate,aWinsFT,30,15,false,'%',60)}
       </div>
     </div>
     <div style="background:var(--border)"></div>
@@ -596,10 +596,10 @@ function renderFourFactors(summData, boxData){
         ${hName} <span style="font-size:0.6rem;color:var(--muted);font-weight:400;margin-left:6px">${hFactorWins}/4 factors</span>
       </div>
       <div class="ff-rows">
-        ${hffRow('eFG%','(FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,!aWinsEFG,52,44,false,'%',80)}
-        ${hffRow('TOV%','TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,!aWinsTOV,15,22,true,'%',35)}
-        ${hffRow('OREB%','OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,!aWinsOREB,33,22,false,'%',60)}
-        ${hffRow('FT Rate','FTM / FGA',aFF.ftRate,hFF.ftRate,!aWinsFT,30,15,false,'%',60)}
+        ${hffRow('Shooting the Ball','eFG% = (FGM + 0.5×3PM) / FGA',aFF.eFG,hFF.eFG,!aWinsEFG,52,44,false,'%',80)}
+        ${hffRow('Taking Care of the Ball','TOV% = TOV / (FGA + 0.44×FTA + TOV)',aFF.tovPct,hFF.tovPct,!aWinsTOV,15,22,true,'%',35)}
+        ${hffRow('Offensive Rebounding','OREB% = OREB / (OREB + Opp DREB)',aFF.orebPct,hFF.orebPct,!aWinsOREB,33,22,false,'%',60)}
+        ${hffRow('Getting to the Foul Line','FT Rate = FTA / FGA',aFF.ftRate,hFF.ftRate,!aWinsFT,30,15,false,'%',60)}
       </div>
     </div>
   </div>
