@@ -211,6 +211,26 @@ function getStatus(evt){
   return'upcoming';
 }
 function sortOrd(t){return{live:0,halftime:1,final:2,upcoming:3}[t]??4;}
+function gameSort(a,b){
+  const sa=getStatus(a),sb=getStatus(b);
+  function key(evt,st){
+    const per=evt.status?.period||1;
+    const secs=clockSecs(evt.status?.displayClock);
+    if(st==='live'){
+      if(per>=3)return 0+secs;           // OT — treat as most urgent
+      if(per===2)return 100+secs;        // 2nd half: 1:17 < 7:28 < 18:27
+      return 2000+secs;                  // 1st half: least time left = furthest along
+    }
+    if(st==='halftime')return 1500;
+    if(st==='final')return 3000+(new Date(evt.date||0).getTime()?0:0); // flat, API order preserved
+    if(st==='upcoming'){
+      const ms=new Date(evt.date||'9999').getTime();
+      return 5000+(isNaN(ms)?999999:ms/1e9); // normalize to small offset
+    }
+    return 9999;
+  }
+  return key(a,sa)-key(b,sb);
+}
 function clockSecs(s){if(!s)return 999;const p=s.split(':');return(parseInt(p[0])||0)*60+(parseInt(p[1])||0);}
 function minsElapsed(evt){
   const st=getStatus(evt);const period=evt?.status?.period||1;const secs=clockSecs(evt?.status?.displayClock);
@@ -266,7 +286,7 @@ function silentRefreshGames(){
     e1.forEach(e=>e._stype=2);e2.forEach(e=>e._stype=3);e3.forEach(e=>e._stype=4);
     const ids1=new Set(e1.map(e=>e.id));const ids12=new Set([...ids1,...e2.map(e=>e.id)]);
     const allEvts=[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))];
-    const sorted=allEvts.sort((a,b)=>sortOrd(getStatus(a))-sortOrd(getStatus(b)));
+    const sorted=allEvts.sort((a,b)=>gameSort(a,b));
     let needsRebuild=false;
     sorted.forEach(evt=>{
       const gid=evt.id;const newSt=getStatus(evt);
@@ -315,7 +335,7 @@ function renderList(data){
   const el=document.getElementById('gamesList');el.innerHTML='';
   const evts=data?.events||[];
   if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
-  [...evts].sort((a,b)=>sortOrd(getStatus(a))-sortOrd(getStatus(b))).forEach(evt=>el.appendChild(buildCard(evt)));
+  [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.appendChild(buildCard(evt)));
 }
 function buildCard(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
