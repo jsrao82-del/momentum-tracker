@@ -380,6 +380,8 @@ function silentRefreshGames(){
 }
 
 function renderList(evts){
+  if(evts && !Array.isArray(evts) && evts.events) evts=evts.events;
+  evts=evts||[];
   const el=document.getElementById('gameList');
   if(!el)return;
   // Group: live first, then halftime, then upcoming, then final
