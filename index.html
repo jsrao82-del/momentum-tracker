@@ -192,6 +192,11 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   .header-key-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;width:180px;outline:none}
   .header-key-input:focus{border-color:var(--accent)}
   .header-key-btn{background:var(--accent);border:none;border-radius:6px;color:#000;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer}
+  
+  .header-key{display:flex;align-items:center;gap:4px;margin-left:8px}
+  .header-key-input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;font-size:11px;padding:3px 8px;width:160px;outline:none;transition:border-color .2s}
+  .header-key-input:focus{border-color:var(--accent)}
+  .header-key-btn{background:var(--accent);border:none;border-radius:5px;color:#000;font-size:12px;font-weight:700;padding:3px 8px;cursor:pointer;line-height:1}
   </style>
 </head>
 <body>
@@ -201,6 +206,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     <span><span class="live-dot"></span> Live</span>
     <span id="lastUpdate">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ Refresh</button>
+    <div class="header-key">
+      <input type="password" id="apiKeyInput" class="header-key-input" placeholder="RapidAPI key…" onkeydown="if(event.key==='Enter')saveApiKey()" />
+      <button class="header-key-btn" onclick="saveApiKey()">✓</button>
+    </div>
   </div>
 </header>
 
@@ -244,6 +253,10 @@ function saveSnapshot(gameId,mins,awayFF,homeFF){
 window.addEventListener('load',()=>{
   renderMomentumAlerts();if(KEY){document.getElementById('apiKeyInput').value=KEY;loadGames();loadInjuries();}});
 function saveApiKey(){
+  const inp=document.getElementById('apiKeyInput');
+  if(inp?.value?.trim()) KEY=inp.value.trim();
+  if(KEY){localStorage.setItem('mt_key',KEY);if(inp)inp.value=KEY;loadGames();}
+  else showErr('Enter your RapidAPI key');
   const inp=document.getElementById('apiKeyInput');
   if(inp&&inp.value) KEY=inp.value.trim();
   if(KEY) localStorage.setItem('mt_key',KEY);KEY=document.getElementById('apiKeyInput').value.trim();localStorage.setItem('mt_key',KEY);loadGames();loadInjuries();}
@@ -618,3 +631,9 @@ function renderList(evts){
     +'<div class="games-col-wrap"><div class="games-col-hdr">'+(final.length?'FINAL ('+final.length+')':'FINAL')+'</div><div class="game-col">'+colHtml(final)+'</div></div>'
     +'</div>';
 }
+
+// Auto-load on startup
+(function(){
+  const k=localStorage.getItem('mt_key');
+  if(k){KEY=k;const i=document.getElementById('apiKeyInput');if(i)i.value=k;loadGames();}
+})();
