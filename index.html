@@ -379,12 +379,22 @@ function silentRefreshGames(){
   }).catch(()=>{});
 }
 
-function renderList(data){
-  const el=document.getElementById('gamesList');el.innerHTML='';
-  const evts=data?.events||[];
-  if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
-  [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.appendChild(buildCard(evt)));
+function renderList(evts){
+  const el=document.getElementById('gameList');
+  if(!el)return;
+  // Group: live first, then halftime, then upcoming, then final
+  const order={live:0,halftime:1,upcoming:2,final:3};
+  const sorted=[...evts].sort((a,b)=>{
+    const sa=order[getStatus(a)]??4;
+    const sb=order[getStatus(b)]??4;
+    if(sa!==sb)return sa-sb;
+    // upcoming: sort by tip time
+    if(getStatus(a)==='upcoming') return new Date(a.date)-new Date(b.date);
+    return 0;
+  });
+  el.innerHTML=sorted.map(evt=>buildCard(evt,evt.id===selGameId)).join('');
 }
+
 function buildCard(evt,isSelected){
   const comp=evt.competitions?.[0]||evt;
   const teams=comp.competitors||[];
