@@ -919,7 +919,7 @@ function renderMomentumAlerts(){
   if(!bar||!list) return;
   const alerts = Object.entries(momentumAlerts);
   if(!alerts.length){
-    list.innerHTML='<div style="color:var(--muted);font-size:0.72rem;padding:2px 0">Watching for momentum shifts — select a live game to begin tracking</div>';
+    list.innerHTML='<div style="color:var(--muted);font-size:0.72rem;padding:2px 0">Currently monitoring</div>';
     return;
   }
   list.innerHTML = alerts.map(([gid, alert])=>{
