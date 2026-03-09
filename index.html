@@ -208,7 +208,8 @@ function saveSnapshot(gameId,mins,awayFF,homeFF){
     ffSnapshots[gameId].home[key]={eFG:homeFF.eFG,tovPct:homeFF.tovPct,orebPct:homeFF.orebPct,ftRate:homeFF.ftRate};
   }
 }
-window.addEventListener('load',()=>{if(KEY){document.getElementById('apiKeyInput').value=KEY;loadGames();loadInjuries();}});
+window.addEventListener('load',()=>{
+  renderMomentumAlerts();if(KEY){document.getElementById('apiKeyInput').value=KEY;loadGames();loadInjuries();}});
 function saveApiKey(){KEY=document.getElementById('apiKeyInput').value.trim();localStorage.setItem('mt_key',KEY);loadGames();loadInjuries();}
 function refreshAll(){loadGames();if(selGameId)loadGameDetails(selGameId);}
 function showErr(m){const b=document.getElementById('errorBox');b.style.display='block';b.textContent='⚠️ '+m;setTimeout(()=>b.style.display='none',8000);}
@@ -917,8 +918,10 @@ function renderMomentumAlerts(){
   const list = document.getElementById('momentumAlertsList');
   if(!bar||!list) return;
   const alerts = Object.entries(momentumAlerts);
-  if(!alerts.length){bar.classList.remove('has-alerts');return;}
-  bar.classList.add('has-alerts');
+  if(!alerts.length){
+    list.innerHTML='<div style="color:var(--muted);font-size:0.72rem;padding:2px 0">Watching for momentum shifts — select a live game to begin tracking</div>';
+    return;
+  }
   list.innerHTML = alerts.map(([gid, alert])=>{
     const per = alert.period===1?'1st':alert.period===2?'2nd':'OT'+(alert.period-2);
     const runStr = alert.run.ourPts+'-'+alert.run.theirPts+' run (last '+(alert.run.ourConv+alert.run.theirConv)+' poss)';
