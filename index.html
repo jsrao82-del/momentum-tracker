@@ -201,7 +201,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div class="main-layout">
   <div class="games-col">
     <div class="section-title">Today's Games</div>
-    <div class="games-list" id="gamesList"><div class="loading"><div class="spinner"></div> Enter API key...</div></div>
+    <div class="games-list" id="gameList"><div class="loading"><div class="spinner"></div> Enter API key...</div></div>
   </div>
   <div class="dash-col">
     <div class="dashboard" id="mainDashboard"><div class="no-game">👈 Select a game to load the dashboard</div></div>
@@ -309,7 +309,7 @@ async function loadInjuries(){
 }
 async function loadGames(){
   if(!KEY){showErr('Enter your API key.');return;}
-  const el=document.getElementById('gamesList');
+  const el=document.getElementById('gameList');
   el.innerHTML='<div class="loading"><div class="spinner"></div> Loading...</div>';
   try{
     const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
@@ -321,7 +321,7 @@ async function loadGames(){
     e1.forEach(e=>e._stype=2);e2.forEach(e=>e._stype=3);e3.forEach(e=>e._stype=4);
     const ids1=new Set(e1.map(e=>e.id));const ids12=new Set([...ids1,...e2.map(e=>e.id)]);
     renderList({events:[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))]});
-  }catch(e){document.getElementById('gamesList').innerHTML='<div style="color:var(--red);padding:8px">Error: '+e.message+'</div>';showErr('Failed: '+e.message);}
+  }catch(e){document.getElementById('gameList').innerHTML='<div style="color:var(--red);padding:8px">Error: '+e.message+'</div>';showErr('Failed: '+e.message);}
 }
 function silentRefreshGames(){
   if(!KEY)return;
