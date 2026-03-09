@@ -503,6 +503,15 @@ function buildCard(evt,isSelected){
 }
 
 function bonusLabel(fouls){const f=parseInt(fouls)||0;if(f>=10)return'DOUBLE BONUS';if(f>=7)return'BONUS';return'';}
+async function selectGame(gid){
+  selGameId=gid;
+  const cards=document.querySelectorAll('.game-card');
+  cards.forEach(c=>c.classList.toggle('selected',c.dataset.gid===gid));
+  selEvt=allEvents.find(e=>e.id===gid)||null;
+  clearInterval(autoTimer);
+  await loadGameDetails(gid);
+  autoTimer=setInterval(()=>silentRefreshGames(),8000);
+}
 function renderDash(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
   const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
