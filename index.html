@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- v1773071031178 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -261,8 +262,7 @@ function saveSnapshot(gameId,mins,awayFF,homeFF){
     ffSnapshots[gameId].home[key]={eFG:homeFF.eFG,tovPct:homeFF.tovPct,orebPct:homeFF.orebPct,ftRate:homeFF.ftRate};
   }
 }
-window.addEventListener('load',()=>{
-  renderMomentumAlerts();if(KEY){document.getElementById('apiKeyInput').value=KEY;loadGames();loadInjuries();}});
+
 function saveApiKey(){KEY=document.getElementById('apiKeyInput').value.trim();localStorage.setItem('mt_key',KEY);loadGames();loadInjuries();}
 function refreshAll(){loadGames();if(selGameId)loadGameDetails(selGameId);}
 function showErr(m){const b=document.getElementById('errorBox');b.style.display='block';b.textContent='⚠️ '+m;setTimeout(()=>b.style.display='none',8000);}
@@ -432,7 +432,9 @@ function renderList(evts){
 </body>
 </html>
 document.addEventListener('DOMContentLoaded',function(){
+  renderMomentumAlerts();
   const k=localStorage.getItem('mt_key');
   const inp=document.getElementById('apiKeyInput');
   if(k&&inp){inp.value=k;KEY=k;loadGames();}
 });
+
