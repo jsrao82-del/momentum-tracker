@@ -786,6 +786,153 @@ function renderTopScorers(boxData){
   el.innerHTML=buildPanel(awayLeaders,boxTeams[0],false)+buildPanel(homeLeaders,boxTeams[1],true);
 }
 
+
+// ── MOMENTUM DETECTION ────────────────────────────────────────────────────────
+// Timing gate: only fire after 10min mark of 1st half or any time in 2nd half+
+function inMomentumWindow(evt){
+  const period = evt?.status?.period||1;
+  if(period >= 2) return true;
+  if(period === 1){
+    const secs = clockSecs(evt?.status?.displayClock);
+    return secs <= 600; // under 10:00 left = past midpoint of 1st half
+  }
+  return false;
+}
+
+// Reconstruct possession outcomes from plays array
+// Returns array of {teamId, scored, pts, clock, period, text}
+function buildPossessions(plays, awayTeamId, homeTeamId){
+  const possessions = [];
+  let curTeam = null, curPts = 0, curClock = '', curPeriod = 1, curText = '';
+  // Play types that end a possession
+  const SCORING_TYPES = ['MadeFieldGoal','MadeFreeThrow','Made3PtFieldGoal'];
+  const TURNOVER_TYPES = ['Turnover'];
+  const STOP_TYPES = ['MissedFieldGoal','MissedFreeThrow','Missed3PtFieldGoal','DefensiveRebound'];
+
+  plays.forEach(p => {
+    const tid = String(p.team?.id||'');
+    const type = p.type?.text||'';
+    const scored = p.scoringPlay===true;
+    const val = p.scoreValue||0;
+
+    // Skip subs, timeouts, periods
+    if(type==='Substitution'||type==='End of Period'||type==='Start Period'||!tid) return;
+
+    // Track possession owner
+    if(!curTeam) curTeam = tid;
+
+    // If scoring play for current team
+    if(scored && tid === curTeam){
+      curPts += val;
+      curClock = p.clock?.displayValue||'';
+      curPeriod = p.period?.number||1;
+      curText = p.text||'';
+      // Free throws: only close possession on last FT
+      const isFT = type==='MadeFreeThrow';
+      const isLastFT = !isFT || (p.text||'').match(/d+ of (d+)/) && 
+        RegExp.$1 === (p.text||'').match(/(d+) of d+/)?.[1];
+      if(!isFT || isLastFT){
+        possessions.push({teamId:curTeam, scored:true, pts:curPts, clock:curClock, period:curPeriod, text:curText});
+        curTeam = tid === awayTeamId ? homeTeamId : awayTeamId; // possession switches
+        curPts = 0; curText = '';
+      }
+      return;
+    }
+
+    // Turnover = possession ends with 0 pts
+    if(TURNOVER_TYPES.some(t=>type.includes(t)) && tid === curTeam){
+      possessions.push({teamId:curTeam, scored:false, pts:0, clock:p.clock?.displayValue||'', period:p.period?.number||1, text:p.text||''});
+      curTeam = tid === awayTeamId ? homeTeamId : awayTeamId;
+      curPts = 0; curText = '';
+      return;
+    }
+
+    // Defensive rebound = opponent missed, this team gets ball
+    if(type==='Defensive Rebound'){
+      // The team getting the rebound = possession changes TO them
+      if(curTeam && curTeam !== tid && curPts === 0){
+        possessions.push({teamId:curTeam, scored:false, pts:0, clock:p.clock?.displayValue||'', period:p.period?.number||1, text:'Miss'});
+      }
+      curTeam = tid;
+      curPts = 0; curText = '';
+    }
+  });
+  return possessions;
+}
+
+// Detect momentum shift in last N possessions
+// Returns null or {teamId, state:'forming'|'confirmed', run:{ourPts,theirPts,ourConv,theirConv}, startClock, startPeriod}
+function detectMomentum(possessions, awayTeamId, homeTeamId){
+  if(possessions.length < 4) return null;
+
+  // Look at last 8 possessions (4 per team max)
+  const recent = possessions.slice(-8);
+
+  for(const focusTeam of [awayTeamId, homeTeamId]){
+    const oppTeam = focusTeam === awayTeamId ? homeTeamId : awayTeamId;
+
+    // Get last 3 possessions for each team within recent window
+    const ourPoss = recent.filter(p=>p.teamId===focusTeam).slice(-3);
+    const theirPoss = recent.filter(p=>p.teamId===oppTeam).slice(-3);
+
+    if(ourPoss.length < 2 || theirPoss.length < 2) continue;
+
+    // Count conversions
+    const ourConv = ourPoss.filter(p=>p.scored).length;
+    const theirConv = theirPoss.filter(p=>p.scored).length;
+    const ourPts = ourPoss.reduce((s,p)=>s+p.pts,0);
+    const theirPts = theirPoss.reduce((s,p)=>s+p.pts,0);
+
+    // FORMING: our last 2 possessions scored, their last 2 did not
+    // (1 stop + 1 score = earliest signal)
+    const ourLast2 = ourPoss.slice(-2);
+    const theirLast2 = theirPoss.slice(-2);
+    const ourLast2Conv = ourLast2.filter(p=>p.scored).length;
+    const theirLast2Conv = theirLast2.filter(p=>p.scored).length;
+
+    if(ourLast2Conv >= 2 && theirLast2Conv === 0){
+      const startPoss = recent.find(p=>p.teamId===focusTeam&&p.scored);
+      return {
+        teamId: focusTeam,
+        side: focusTeam === awayTeamId ? 'away' : 'home',
+        state: (ourConv >= 3 && theirConv <= 1) ? 'confirmed' : 'forming',
+        run: {ourPts, theirPts, ourConv, theirConv},
+        clock: theirPoss[theirPoss.length-1]?.clock||'',
+        period: theirPoss[theirPoss.length-1]?.period||1,
+      };
+    }
+  }
+  return null;
+}
+
+function renderMomentumAlerts(){
+  const bar = document.getElementById('momentumBar');
+  const list = document.getElementById('momentumAlertsList');
+  if(!bar||!list) return;
+  const alerts = Object.entries(momentumAlerts);
+  if(!alerts.length){bar.classList.remove('has-alerts');return;}
+  bar.classList.add('has-alerts');
+  list.innerHTML = alerts.map(([gid, alert])=>{
+    const per = alert.period===1?'1st':alert.period===2?'2nd':'OT'+(alert.period-2);
+    const runStr = alert.run.ourPts+'-'+alert.run.theirPts+' run (last '+(alert.run.ourConv+alert.run.theirConv)+' poss)';
+    const teamName = alert.side==='away' ? alert.awayName : alert.homeName;
+    const oppName = alert.side==='away' ? alert.homeName : alert.awayName;
+    return `<div class="momentum-alert ${alert.state}" onclick="jumpToGame('${gid}')">
+      <div>
+        <div class="ma-badge">${alert.state==='forming'?'⚡ FORMING':'🔥 CONFIRMED'}</div>
+        <div class="ma-teams" style="margin-top:4px"><span style="color:${alert.side==='away'?'var(--accent2)':'var(--accent)'}">${teamName}</span> vs ${oppName}</div>
+        <div class="ma-run">${runStr}</div>
+      </div>
+      <div class="ma-clock">${alert.clock||''}<br>${per} half</div>
+    </div>`;
+  }).join('');
+}
+
+function jumpToGame(gid){
+  const card = document.querySelector('.game-card[data-gid="'+gid+'"]');
+  if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.click();}
+}
+
 async function loadGameDetails(gid){
   try{
     const[box,summ]=await Promise.allSettled([api('/mbb/box-score/'+gid),api('/mbb/summary/'+gid)]);
@@ -796,6 +943,33 @@ async function loadGameDetails(gid){
     if(summVal){
       renderOdds(summVal);renderH2H(summVal);renderScoringChart(summVal);
       renderFourFactors(summVal,boxVal);
+      // Momentum detection — runs on every refresh, no extra API calls
+      if(selEvt && inMomentumWindow(selEvt)){
+        const comp=selEvt.competitions?.[0]||selEvt;
+        const teams=comp.competitors||[];
+        const awayComp=teams.find(t=>t.homeAway==='away')||teams[0]||{};
+        const homeComp=teams.find(t=>t.homeAway==='home')||teams[1]||{};
+        const awayId=String(awayComp.team?.id||'');
+        const homeId=String(homeComp.team?.id||'');
+        const plays=summVal.plays||[];
+        if(plays.length){
+          const possessions=buildPossessions(plays,awayId,homeId);
+          const result=detectMomentum(possessions,awayId,homeId);
+          const st=getStatus(selEvt);
+          if(result && (st==='live'||st==='halftime')){
+            momentumAlerts[gid]={
+              ...result,
+              awayName:awayComp.team?.abbreviation||'Away',
+              homeName:homeComp.team?.abbreviation||'Home',
+              gameId:gid,
+            };
+          } else {
+            // Clear if no longer active
+            if(momentumAlerts[gid]) delete momentumAlerts[gid];
+          }
+          renderMomentumAlerts();
+        }
+      }
     } else if(boxVal){
       renderFourFactors(null,boxVal);
     }
