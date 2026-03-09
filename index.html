@@ -230,15 +230,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </div>
 
 </div>
-<div class="main-layout">
-  <div class="games-col">
-    <div class="section-title">Today's Games</div>
-    <div class="games-list" id="gameList"><div class="loading"><div class="spinner"></div> Enter API key...</div></div>
-  </div>
-  <div class="dash-col">
-    <div class="dashboard" id="mainDashboard"><div class="no-game">👈 Select a game to load the dashboard</div></div>
-  </div>
-</div>
+
 <script>
 const HOST='sports-information.p.rapidapi.com';
 let KEY=localStorage.getItem('mt_key')||'';
@@ -428,13 +420,13 @@ function renderList(evts){
 }
 
 
-</script>
-</body>
-</html>
+
 document.addEventListener('DOMContentLoaded',function(){
   renderMomentumAlerts();
   const k=localStorage.getItem('mt_key');
   const inp=document.getElementById('apiKeyInput');
   if(k&&inp){inp.value=k;KEY=k;loadGames();}
 });
-
+</script>
+</body>
+</html>
