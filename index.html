@@ -41,7 +41,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .card-clock.halftime{color:var(--yellow);}
 .card-clock.final{color:var(--muted);font-size:0.75rem;font-weight:400;}
 .card-clock.upcoming{color:var(--accent2);font-size:0.72rem;font-weight:600;}
-.tourn-banner{margin-top:6px;border-top:1px solid rgba(255,255,255,.06);padding-top:5px;font-size:0.62rem;font-weight:600;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tourn-banner{font-size:0.62rem;font-weight:600;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .team-row{display:flex;align-items:center;gap:5px;padding:4px 0;}
 .team-row+.team-row{border-top:1px solid rgba(30,45,69,0.7);}
 .t-badge{min-width:22px;text-align:center;flex-shrink:0;font-size:0.72rem;}
@@ -56,8 +56,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .s-win{color:var(--green);}
 .s-tie{color:var(--accent2);}
 .s-lose{color:var(--text);}
-.card-footer{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);font-size:0.62rem;}
-.game-location{font-size:10px;color:var(--muted);margin-top:3px}
+.card-footer{margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);font-size:0.62rem;}
+.game-location{color:var(--muted);margin-bottom:3px;}
 .card-alerts{display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;align-items:center;margin-top:2px;}
 .line-str{color:var(--accent);font-weight:700;}
 .close-alert{color:var(--red);font-weight:700;}
@@ -156,17 +156,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .error-msg{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;font-size:0.78rem;color:var(--red);margin-bottom:14px;}
 .no-game{grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:0.85rem;}
 
-  .header-key{display:flex;align-items:center;gap:4px;margin-left:8px}
-  .header-key-input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;font-size:11px;padding:3px 8px;width:160px;outline:none}
-  .header-key-input:focus{border-color:var(--accent)}
-  .header-key-btn{background:var(--accent);border:none;border-radius:5px;color:#000;font-size:12px;font-weight:700;padding:3px 8px;cursor:pointer}
-  .games-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start}
-  .games-col-wrap{display:flex;flex-direction:column;gap:4px}
-  .games-col-hdr{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--muted);padding:2px 4px 6px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:2px}
-  .live-hdr{color:#ef4444}
-  .game-col{display:flex;flex-direction:column;gap:6px}
-  @media(max-width:800px){.games-3col{grid-template-columns:1fr}}
-  @keyframes m-pulse{0%,100%{opacity:.4}50%{opacity:1}}
+  .momentum-monitoring{animation:m-pulse 1.8s ease-in-out infinite;display:inline-block}
+  @keyframes m-pulse{0%,100%{opacity:.35}50%{opacity:1}}
 </style>
 </head>
 <body>
@@ -176,17 +167,17 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     <span><span class="live-dot"></span> Live</span>
     <span id="lastUpdate">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ Refresh</button>
-    <div class="header-key">
-      <input type="password" id="apiKeyInput" class="header-key-input" placeholder="RapidAPI key…" onkeydown="if(event.key==='Enter')saveApiKey()" />
-      <button class="header-key-btn" onclick="saveApiKey()">✓</button>
-    </div>
   </div>
 </header>
-
+<div class="config-bar">
+  <span style="font-size:0.75rem;color:var(--muted)">RapidAPI Key:</span>
+  <input type="password" class="config-input" id="apiKeyInput" placeholder="Paste your RapidAPI key here..."/>
+  <button class="save-btn" onclick="saveApiKey()">Save & Load</button>
+</div>
 <div id="errorBox" style="display:none" class="error-msg"></div>
 <div class="momentum-bar" id="momentumBar">
   <div class="momentum-bar-title">⚡ Momentum Alerts</div>
-  <div class="momentum-alerts-list" id="momentumAlertsList"><span class="momentum-monitoring"><span class="momentum-monitoring">🔍 Analyzing…</span></span></div>
+  <div class="momentum-alerts-list" id="momentumAlertsList"></div>
 </div>
 <div class="main-layout">
   <div class="games-col">
@@ -369,33 +360,16 @@ function silentRefreshGames(){
   }).catch(()=>{});
 }
 
-function renderList(evts){
-  if(evts&&!Array.isArray(evts)&&evts.events) evts=evts.events;
-  const el=document.getElementById('gamesList');
-  if(!el) return;
-  if(!evts||!evts.length){el.innerHTML='<div style="color:var(--muted);padding:12px">No games today</div>';return;}
-  const live=evts.filter(e=>{const s=getStatus(e);return s==='live'||s==='halftime';});
-  const upcoming=evts.filter(e=>getStatus(e)==='pre');
-  const final=evts.filter(e=>getStatus(e)==='final');
-  function makeCol(games,hdrHtml){
-    const wrap=document.createElement('div');wrap.className='games-col-wrap';
-    const hdr=document.createElement('div');hdr.className='games-col-hdr'+(hdrHtml.includes('LIVE')?' live-hdr':'');hdr.textContent=hdrHtml;
-    const col=document.createElement('div');col.className='game-col';
-    games.forEach(e=>{const c=buildCard(e);if(c)col.appendChild(c);});
-    wrap.appendChild(hdr);wrap.appendChild(col);return wrap;
-  }
-  el.innerHTML='';
-  const grid=document.createElement('div');grid.className='games-3col';
-  grid.appendChild(makeCol(live,live.length?'LIVE ('+live.length+')':'LIVE'));
-  grid.appendChild(makeCol(upcoming,upcoming.length?'UPCOMING ('+upcoming.length+')':'UPCOMING'));
-  grid.appendChild(makeCol(final,final.length?'FINAL ('+final.length+')':'FINAL'));
-  el.appendChild(grid);
+function renderList(data){
+  const el=document.getElementById('gamesList');el.innerHTML='';
+  const evts=data?.events||[];
+  if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
+  [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.appendChild(buildCard(evt)));
 }
 function buildCard(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
   const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
-  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{  return c;
-};
+  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{};
   const gid=evt.id||evt.gameId;const st=getStatus(evt);const neutral=!!(comp.neutralSite);const stype=evt._stype||2;
   const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
   const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
@@ -438,11 +412,13 @@ function buildCard(evt){
   c.className='game-card is-'+st+(isUpset?' card-upset':isUdog?' card-underdog':'');c.dataset.gid=gid;c.dataset.status=st;
   c.onclick=()=>selectGame(gid,evt,c);
   c.innerHTML=
-    '<div class="card-top"><span class="status-pill sp-'+st+'">'+{live:'LIVE',halftime:'HLF',final:'FINAL',upcoming:'UPCOMING'}[st]+'</span>'+clockHtml+'</div>'+
+    '<div class="card-top"><span class="status-pill sp-'+st+'">'+{live:'● LIVE',halftime:'⏸ HLF',final:'FINAL',upcoming:'UPCOMING'}[st]+'</span>'+clockHtml+'</div>'+
+    (tournNote?'<div class="tourn-banner">'+tournNote+'</div>':'')+
     '<div class="team-row">'+leftBadge(away)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+aName+'</span>'+aIcons+'</div><div class="t-rec">'+(awayTotal+(awayConf?' ('+awayConf+')':''))+'</div></div><span class="t-score '+aCls+'">'+(hasScores?aScore:'—')+'</span></div>'+
     '<div class="team-row">'+leftBadge(home)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+hName+'</span>'+hIcons+'</div><div class="t-rec">'+(homeTotal+(homeConf?' ('+homeConf+')':''))+'</div></div><span class="t-score '+hCls+'">'+(hasScores?hScore:'—')+'</span></div>'+
-    '<div class="card-footer">'+(lineStr?'<span class="line-str">'+lineStr+'</span>':'')+(isClose?'<span class="close-alert">🔥 Close!</span>':'')+(isUpset?' <span class="upset-str">💥 Upset!</span>':'')+(locationStr?'<span class="game-location">'+locationStr+'</span>':'')+'</div>'+
-    (tournNote?'<div class="tourn-banner">'+tournNote+'</div>':'');
+    '<div class="card-footer">'+(locationStr?'<div class="game-location">'+locationStr+'</div>':'')+
+    '<div class="card-alerts">'+(lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
+    '<span>'+(isClose?'<span class="close-alert">🔥 Close!</span>':'')+(isUpset?' <span class="upset-str">🚨 Upset!</span>':'')+(isUdog?' <span class="udog-str">🔥 Underdog!</span>':'')+'</span></div></div>';
   return c;
 }
 async function selectGame(gid,evt,card){
@@ -450,7 +426,6 @@ async function selectGame(gid,evt,card){
   card.classList.add('active');selGameId=gid;selEvt=evt;renderDash(evt);await loadGameDetails(gid);
   if(autoTimer)clearInterval(autoTimer);
   autoTimer=setInterval(()=>{silentRefreshGames();if(selGameId)loadGameDetails(selGameId);},8000);
-  return c;
 }
 function bonusLabel(fouls){const f=parseInt(fouls)||0;if(f>=10)return'DOUBLE BONUS';if(f>=7)return'BONUS';return'';}
 function renderDash(evt){
@@ -947,7 +922,7 @@ function renderMomentumAlerts(){
   if(!bar||!list) return;
   const alerts = Object.entries(momentumAlerts);
   if(!alerts.length){
-    list.innerHTML='<div style="color:var(--muted);font-size:0.72rem;padding:2px 0">🔍 Analyzing…</div>';
+    list.innerHTML='<div style="color:var(--muted);font-size:0.72rem;padding:2px 0"><span class="momentum-monitoring">🔍 Analyzing…</span></div>';
     return;
   }
   list.innerHTML = alerts.map(([gid, alert])=>{
@@ -1055,13 +1030,6 @@ function renderInjuryReport(){
 }
 function renderOdds(data){const odds=data?.pickcenter||data?.odds||[];const s=document.getElementById('spreadVal'),o=document.getElementById('ouVal');if(!s||!o)return;s.textContent=odds[0]?.details||'—';o.textContent=odds[0]?.overUnder?odds[0].overUnder.toFixed(1):'—';}
 function renderH2H(data){const el=document.getElementById('h2hSection');if(!el)return;const h=data?.headToHeadMatchups||data?.h2h||[];if(!h.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No H2H data</div>';return;}el.innerHTML=h.slice(0,5).map(g=>'<div class="h2h-row"><span>'+(g.shortName||'—')+'</span><span style="color:var(--muted)">'+(g.score||'—')+'</span><span style="font-size:0.65rem;color:var(--muted)">'+(g.date||'')+'</span></div>').join('');}
-
-document.addEventListener('DOMContentLoaded',function(){
-  renderMomentumAlerts();
-  const k=localStorage.getItem('mt_key');
-  const inp=document.getElementById('apiKeyInput');
-  if(k&&inp){inp.value=k;KEY=k;loadGames();}
-});
 </script>
 </body>
 </html>
