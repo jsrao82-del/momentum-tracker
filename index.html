@@ -371,27 +371,31 @@ function silentRefreshGames(){
 
 function renderList(evts){
   if(evts&&!Array.isArray(evts)&&evts.events) evts=evts.events;
-  const el=document.getElementById('gameList');
+  const el=document.getElementById('gamesList');
+  if(!el) return;
   if(!evts||!evts.length){el.innerHTML='<div style="color:var(--muted);padding:12px">No games today</div>';return;}
   const live=evts.filter(e=>{const s=getStatus(e);return s==='live'||s==='halftime';});
   const upcoming=evts.filter(e=>getStatus(e)==='pre');
   const final=evts.filter(e=>getStatus(e)==='final');
-  const col=games=>games.map(e=>buildCard(e,e.id===selGameId).outerHTML).join('');
-  el.innerHTML=
-    '<div class="games-3col">'
-    +'<div class="games-col-wrap"><div class="games-col-hdr live-hdr">'+(live.length?'LIVE ('+live.length+')':'LIVE')+'</div><div class="game-col">'+col(live)+'</div></div>'
-    +'<div class="games-col-wrap"><div class="games-col-hdr">'+(upcoming.length?'UPCOMING ('+upcoming.length+')':'UPCOMING')+'</div><div class="game-col">'+col(upcoming)+'</div></div>'
-    +'<div class="games-col-wrap"><div class="games-col-hdr">'+(final.length?'FINAL ('+final.length+')':'FINAL')+'</div><div class="game-col">'+col(final)+'</div></div>'
-    +'</div>';
-  el.querySelectorAll('.game-card').forEach(c=>{
-    const gid=c.dataset.gid,st=c.dataset.status;
-    c.onclick=()=>selectGame(gid,null,c);
-  });
+  function makeCol(games,hdrHtml){
+    const wrap=document.createElement('div');wrap.className='games-col-wrap';
+    const hdr=document.createElement('div');hdr.className='games-col-hdr'+(hdrHtml.includes('LIVE')?' live-hdr':'');hdr.textContent=hdrHtml;
+    const col=document.createElement('div');col.className='game-col';
+    games.forEach(e=>{const c=buildCard(e);if(c)col.appendChild(c);});
+    wrap.appendChild(hdr);wrap.appendChild(col);return wrap;
+  }
+  el.innerHTML='';
+  const grid=document.createElement('div');grid.className='games-3col';
+  grid.appendChild(makeCol(live,live.length?'LIVE ('+live.length+')':'LIVE'));
+  grid.appendChild(makeCol(upcoming,upcoming.length?'UPCOMING ('+upcoming.length+')':'UPCOMING'));
+  grid.appendChild(makeCol(final,final.length?'FINAL ('+final.length+')':'FINAL'));
+  el.appendChild(grid);
 }
 function buildCard(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
   const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
-  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{};
+  const home=teams.find(t=>t.homeAway==='home')||teams[1]||{  return c;
+};
   const gid=evt.id||evt.gameId;const st=getStatus(evt);const neutral=!!(comp.neutralSite);const stype=evt._stype||2;
   const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
   const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
@@ -446,6 +450,7 @@ async function selectGame(gid,evt,card){
   card.classList.add('active');selGameId=gid;selEvt=evt;renderDash(evt);await loadGameDetails(gid);
   if(autoTimer)clearInterval(autoTimer);
   autoTimer=setInterval(()=>{silentRefreshGames();if(selGameId)loadGameDetails(selGameId);},8000);
+  return c;
 }
 function bonusLabel(fouls){const f=parseInt(fouls)||0;if(f>=10)return'DOUBLE BONUS';if(f>=7)return'BONUS';return'';}
 function renderDash(evt){
