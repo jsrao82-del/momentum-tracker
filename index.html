@@ -427,11 +427,12 @@ function renderList(evts){
     +'</div>';
 }
 
-// Auto-load on startup
-(function(){
-  const k=localStorage.getItem('mt_key');
-  if(k){KEY=k;const i=document.getElementById('apiKeyInput');if(i)i.value=k;loadGames();}
-})();
+
 </script>
 </body>
 </html>
+document.addEventListener('DOMContentLoaded',function(){
+  const k=localStorage.getItem('mt_key');
+  const inp=document.getElementById('apiKeyInput');
+  if(k&&inp){inp.value=k;KEY=k;loadGames();}
+});
