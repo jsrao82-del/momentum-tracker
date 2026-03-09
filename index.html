@@ -1035,6 +1035,7 @@ function jumpToGame(gid){
 
 async function loadGameDetails(gid){
   try{
+    if(selEvt) renderDash(selEvt);
     const[box,summ]=await Promise.allSettled([api('/mbb/box-score/'+gid),api('/mbb/summary/'+gid)]);
     const boxVal=box.status==='fulfilled'?box.value:null;
     const summVal=summ.status==='fulfilled'?summ.value:null;
