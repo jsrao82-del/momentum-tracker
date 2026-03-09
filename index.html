@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Momentum Tracker</title>
 <style>
@@ -187,6 +189,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 const HOST='sports-information.p.rapidapi.com';
 let KEY=localStorage.getItem('mt_key')||'';
 let selGameId=null,autoTimer=null,selEvt=null,injuryData=[];
+const momentumAlerts={};
 // Snapshot store: { [gameId]: { away: {t0,t5,...}, home: {t0,t5,...} } }
 // Keys are minutes elapsed: 0,5,10,15,20,25,30,35,40
 const ffSnapshots={};
