@@ -57,7 +57,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .s-tie{color:var(--accent2);}
 .s-lose{color:var(--text);}
 .card-footer{margin-top:7px;padding-top:6px;border-top:1px solid rgba(30,45,69,0.7);font-size:0.62rem;}
-.game-location{color:var(--muted);margin-bottom:3px;}
+.game-location{font-size:10px;color:var(--muted);margin-top:2px}
 .card-alerts{display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;align-items:center;margin-top:2px;}
 .line-str{color:var(--accent);font-weight:700;}
 .close-alert{color:var(--red);font-weight:700;}
@@ -166,6 +166,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   .live-hdr{color:#ef4444}
   .game-col{display:flex;flex-direction:column;gap:6px}
   @media(max-width:800px){.games-3col{grid-template-columns:1fr}}
+  @keyframes m-pulse{0%,100%{opacity:.4}50%{opacity:1}}
 </style>
 </head>
 <body>
@@ -185,7 +186,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div id="errorBox" style="display:none" class="error-msg"></div>
 <div class="momentum-bar" id="momentumBar">
   <div class="momentum-bar-title">⚡ Momentum Alerts</div>
-  <div class="momentum-alerts-list" id="momentumAlertsList"></div>
+  <div class="momentum-alerts-list" id="momentumAlertsList"><span class="momentum-monitoring">🔍 Analyzing…</span></div>
 </div>
 <div class="main-layout">
   <div class="games-col">
@@ -421,12 +422,11 @@ function buildCard(evt){
   c.onclick=()=>selectGame(gid,evt,c);
   c.innerHTML=
     '<div class="card-top"><span class="status-pill sp-'+st+'">'+{live:'● LIVE',halftime:'⏸ HLF',final:'FINAL',upcoming:'UPCOMING'}[st]+'</span>'+clockHtml+'</div>'+
-    (tournNote?'<div class="tourn-banner">🏆 '+tournNote+'</div>':'')+
+    (tournNote?'<div class="tourn-banner">'+tournNote+'</div>':'')+
     '<div class="team-row">'+leftBadge(away)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+aName+'</span>'+aIcons+'</div><div class="t-rec">'+(awayTotal+(awayConf?' ('+awayConf+')':''))+'</div></div><span class="t-score '+aCls+'">'+(hasScores?aScore:'—')+'</span></div>'+
     '<div class="team-row">'+leftBadge(home)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+hName+'</span>'+hIcons+'</div><div class="t-rec">'+(homeTotal+(homeConf?' ('+homeConf+')':''))+'</div></div><span class="t-score '+hCls+'">'+(hasScores?hScore:'—')+'</span></div>'+
-    '<div class="card-footer">'+(locationStr?'<div class="game-location">📍 '+locationStr+'</div>':'')+
-    '<div class="card-alerts">'+(lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
-    '<span>'+(isClose?'<span class="close-alert">🔥 Close!</span>':'')+(isUpset?' <span class="upset-str">🚨 Upset!</span>':'')+(isUdog?' <span class="udog-str">🔥 Underdog!</span>':'')+'</span></div></div>';
+    '<div class="card-footer"><div class="card-alerts">'+(lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
+    '<span>'+(isClose?'<span class="close-alert">🔥 Close!</span>':'')+(isUpset?' <span class="upset-str">🚨 Upset!</span>':'')+(isUdog?' <span class="udog-str">🔥 Underdog!</span>':'')+'</span></div><div class="game-location">'+locationStr+'</div></div></div>';
   return c;
 }
 async function selectGame(gid,evt,card){
@@ -457,7 +457,7 @@ function renderDash(evt){
   }
   document.getElementById('mainDashboard').innerHTML=
     '<div class="card full-width">'+
-      '<div class="card-header"><span class="card-title">'+((stype===3||stype===4)&&tournNote?'🏆 '+tournNote:'Scoreboard')+'</span><span class="badge-live">● Live</span></div>'+
+      '<div class="card-header"><span class="card-title">'+((stype===3||stype===4)&&tournNote?''+tournNote:'Scoreboard')+'</span><span class="badge-live">● Live</span></div>'+
       '<div class="scoreboard-inner">'+
         '<div class="team-block">'+seedBadge(away)+
           '<div class="team-name-lg">'+aName+'</div><div class="team-record">'+getRec(away,'total')+'</div>'+
