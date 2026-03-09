@@ -155,6 +155,28 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 @keyframes spin{to{transform:rotate(360deg)}}
 .error-msg{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;font-size:0.78rem;color:var(--red);margin-bottom:14px;}
 .no-game{grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:0.85rem;}
+
+.card-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.live-badge{display:flex;align-items:center;gap:4px;font-size:0.62rem;font-weight:700;color:var(--green);letter-spacing:1px;}
+.card-clock{font-size:0.85rem;font-weight:800;color:var(--text);}
+.card-clock.hlt{color:var(--yellow);}
+.card-status-fin{font-size:0.72rem;font-weight:700;color:var(--muted);letter-spacing:1px;}
+.card-tipoff{font-size:0.78rem;color:var(--muted);}
+.team-row{display:flex;align-items:center;justify-content:space-between;padding:3px 0;}
+.t-left{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.t-seed{font-size:0.62rem;font-weight:800;color:var(--muted);min-width:14px;text-align:right;}
+.t-info{display:flex;flex-direction:column;min-width:0;}
+.t-name{font-size:0.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.t-rec{font-size:0.62rem;color:var(--muted);}
+.t-score{font-size:1.3rem;font-weight:800;min-width:36px;text-align:right;}
+.score-win{color:var(--green);}
+.score-lead{color:var(--accent2);}
+.card-bottom{margin-top:6px;border-top:1px solid var(--border);padding-top:5px;display:flex;flex-direction:column;gap:3px;}
+.card-event-line{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.card-event-name{font-size:0.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-venue{font-size:0.62rem;color:var(--muted);white-space:nowrap;opacity:0.7;}
+.card-odds{font-size:0.65rem;font-weight:700;color:var(--accent2);}
+.card-alerts{display:flex;gap:6px;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -363,67 +385,113 @@ function renderList(data){
   if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
   [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.appendChild(buildCard(evt)));
 }
-function buildCard(evt){
-  const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
+function buildCard(evt,isSelected){
+  const comp=evt.competitions?.[0]||evt;
+  const teams=comp.competitors||[];
   const away=teams.find(t=>t.homeAway==='away')||teams[0]||{};
   const home=teams.find(t=>t.homeAway==='home')||teams[1]||{};
-  const gid=evt.id||evt.gameId;const st=getStatus(evt);const neutral=!!(comp.neutralSite);const stype=evt._stype||2;
-  const aScore=parseInt(away.score??-1),hScore=parseInt(home.score??-1);
-  const hasScores=(aScore>=0&&hScore>=0)&&(aScore>0||hScore>0||st==='final');
-  const isTie=hasScores&&aScore===hScore;
-  const fav=getFav(away,home,comp);
-  const udogWin=hasScores&&((fav==='home'&&aScore>hScore)||(fav==='away'&&hScore>aScore));
-  const det=(evt.status?.type?.shortDetail||'').toLowerCase();
-  const in2nd=det.includes('2nd')||det.includes('ot');
-  const isUpset=(st==='halftime'||(st==='live'&&in2nd)||(st==='final'&&udogWin))&&udogWin;
-  const isUdog=st==='live'&&!in2nd&&udogWin;
-  const secs=clockSecs(evt.status?.displayClock);
-  const isClose=hasScores&&in2nd&&secs<=300&&Math.abs(aScore-hScore)<8&&st==='live';
-  const awayTotal=getRec(away,'total'),homeTotal=getRec(home,'total');
-  const awayConf=getRec(away,'vsconf'),homeConf=getRec(home,'vsconf');
-  let lineStr='';const apiOdds=comp?.odds?.[0];
-  if(apiOdds?.details)lineStr=apiOdds.details+(apiOdds.overUnder?' · O/U '+apiOdds.overUnder:'');
-  else lineStr=estimateLine(away,home)||'';
-  const city=comp?.venue?.address?.city,state=comp?.venue?.address?.state;
-  const locationStr=(city&&state)?city+', '+state:(city||'');
-  const tournNote=comp?.notes?.[0]?.headline||'';
-  const aCls=isTie?'s-tie':(aScore>hScore?'s-win':'s-lose');
-  const hCls=isTie?'s-tie':(hScore>aScore?'s-win':'s-lose');
-  // Seed or rank badge — seed for tournament, AP rank for reg season
-  function leftBadge(team){
-    if((stype===3||stype===4)&&team.seed)return'<span class="t-badge seed-b">#'+team.seed+'</span>';
-    const rk=team.curatedRank?.current;if(stype===2&&rk&&rk<26)return'<span class="t-badge rank-b">'+rk+'</span>';
-    return'<span class="t-badge"></span>';
+  const st=getStatus(evt);
+  const gid=evt.id;
+
+  // Seeding: use seed field or curatedRank
+  function seedStr(t){
+    const s=t.curatedRank?.current||t.seed;
+    return (s&&s<99)?'<span class="t-seed">'+s+'</span>':'';
   }
-  const aFav=fav==='away',hFav=fav==='home';
-  const aIcons=aFav?'<span class="t-fav"> ⭐</span>':'';
-  const hIcons=(neutral?'':(hFav?'<span class="t-fav"> 🏠⭐</span>':'<span class="t-fav"> 🏠</span>'))+(neutral&&hFav?'<span class="t-fav"> ⭐</span>':'');
+
+  // Team rows
+  function teamRow(t,scoreColor){
+    const name=t.team?.location||t.team?.displayName||'?';
+    const abbr=t.team?.abbreviation||'';
+    const rec=t.records?.[0]?.summary||'';
+    const pts=t.score||'';
+    const starred=t.curatedRank?.current&&t.curatedRank.current<100?'★ ':'';
+    return `<div class="team-row">
+      <div class="t-left">
+        ${seedStr(t)}
+        <div class="t-info">
+          <span class="t-name">${starred}${name}</span>
+          ${rec?'<span class="t-rec">'+rec+'</span>':''}
+        </div>
+      </div>
+      <div class="t-score ${scoreColor}">${pts}</div>
+    </div>`;
+  }
+
+  // Score colors
+  const awayPts=parseInt(away.score||0);
+  const homePts=parseInt(home.score||0);
+  const awayWin=st==='final'&&awayPts>homePts;
+  const homeWin=st==='final'&&homePts>awayPts;
+  const awayLive=st==='live'&&awayPts>homePts;
+  const homeLive=st==='live'&&homePts>awayPts;
+  const awayColor=awayWin?'score-win':awayLive?'score-lead':'';
+  const homeColor=homeWin?'score-win':homeLive?'score-lead':'';
+
+  // Clock / status badge
   let clockHtml='';
-  if(st==='live'){const clk=evt.status?.displayClock||'';const per=evt.status?.period||1;const pl=per===1?'1ST':per===2?'2ND':'OT'+(per-2);clockHtml='<span class="card-clock">'+clk+' '+pl+'</span>';}
-  else if(st==='halftime')clockHtml='<span class="card-clock halftime">HALFTIME</span>';
-  else if(st==='final')clockHtml='<span class="card-clock final">FINAL</span>';
-  else clockHtml='<span class="card-clock upcoming">'+(evt.status?.type?.shortDetail||'')+'</span>';
-  const aName=away.team?.location||away.team?.displayName||'Away';
-  const hName=home.team?.location||home.team?.displayName||'Home';
-  const c=document.createElement('div');
-  c.className='game-card is-'+st+(isUpset?' card-upset':isUdog?' card-underdog':'');c.dataset.gid=gid;c.dataset.status=st;
-  c.onclick=()=>selectGame(gid,evt,c);
-  c.innerHTML=
-    '<div class="card-top"><span class="status-pill sp-'+st+'">'+{live:'● LIVE',halftime:'⏸ HLF',final:'FINAL',upcoming:'UPCOMING'}[st]+'</span>'+clockHtml+'</div>'+
-    (tournNote?'<div class="tourn-banner">🏆 '+tournNote+'</div>':'')+
-    '<div class="team-row">'+leftBadge(away)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+aName+'</span>'+aIcons+'</div><div class="t-rec">'+(awayTotal+(awayConf?' ('+awayConf+')':''))+'</div></div><span class="t-score '+aCls+'">'+(hasScores?aScore:'—')+'</span></div>'+
-    '<div class="team-row">'+leftBadge(home)+'<div class="t-info"><div class="t-nameline"><span class="t-name">'+hName+'</span>'+hIcons+'</div><div class="t-rec">'+(homeTotal+(homeConf?' ('+homeConf+')':''))+'</div></div><span class="t-score '+hCls+'">'+(hasScores?hScore:'—')+'</span></div>'+
-    '<div class="card-footer">'+(locationStr?'<div class="game-location">📍 '+locationStr+'</div>':'')+
-    '<div class="card-alerts">'+(lineStr?'<span class="line-str">'+lineStr+'</span>':'<span></span>')+
-    '<span>'+(isClose?'<span class="close-alert">🔥 Close!</span>':'')+(isUpset?' <span class="upset-str">🚨 Upset!</span>':'')+(isUdog?' <span class="udog-str">🔥 Underdog!</span>':'')+'</span></div></div>';
-  return c;
+  if(st==='live'){
+    const clk=evt.status?.displayClock||'';
+    const per=evt.status?.period||1;
+    const perStr=per===1?'1ST':per===2?'2ND':per===3?'OT':'OT'+(per-2);
+    clockHtml=`<div class="card-clock">${clk} ${perStr}</div>`;
+  } else if(st==='halftime'){
+    clockHtml='<div class="card-clock hlt">HALFTIME</div>';
+  } else if(st==='final'){
+    clockHtml='<div class="card-status-fin">FINAL</div>';
+  } else {
+    const tip=evt.date?new Date(evt.date).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'';
+    clockHtml='<div class="card-tipoff">'+tip+'</div>';
+  }
+
+  // Status badge (LIVE dot)
+  const liveBadge=st==='live'?'<span class="live-badge"><span class="live-dot"></span>LIVE</span>':'';
+
+  // Odds line
+  const odds=comp.odds?.[0];
+  let oddsLine='';
+  if(odds){
+    const favAbbr=odds.homeTeamOdds?.favorite?home.team?.abbreviation:away.team?.abbreviation;
+    const spread=odds.details||'';
+    const ou=odds.overUnder?'O/U '+odds.overUnder:'';
+    if(spread||ou) oddsLine=`<div class="card-odds">${spread}${spread&&ou?' · ':''}${ou}</div>`;
+  }
+
+  // Event name + venue on same line at bottom
+  const evtName=evt.shortName||evt.name||comp.notes?.[0]?.headline||'';
+  const venue=comp.venue?.fullName||comp.venue?.address?.city?(comp.venue?.address?.city+(comp.venue?.address?.state?', '+comp.venue.address.state:'')):'';
+  const eventLine=evtName||venue?
+    `<div class="card-event-line">
+      <span class="card-event-name">${evtName}</span>
+      ${venue?'<span class="card-venue">'+venue+'</span>':''}
+    </div>`:'';
+
+  // Upset / close game alerts
+  const alerts=[];
+  if(st==='live'||st==='final'){
+    const diff=Math.abs(awayPts-homePts);
+    if(diff<=4&&(awayPts+homePts)>20) alerts.push('<span class="alert-close">🔥 Close!</span>');
+  }
+  const awayFav=away.curatedRank?.current&&away.curatedRank.current<home.curatedRank?.current;
+  const homeFav=home.curatedRank?.current&&home.curatedRank.current<away.curatedRank?.current;
+  if((st==='live'||st==='final')&&awayFav&&homePts>awayPts) alerts.push('<span class="alert-upset">🚨 Upset!</span>');
+  if((st==='live'||st==='final')&&homeFav&&awayPts>homePts) alerts.push('<span class="alert-upset">🚨 Upset!</span>');
+
+  return `<div class="game-card ${st==='live'?'is-live':''} ${st==='halftime'?'is-halftime':''} ${isSelected?'selected':''}" data-gid="${gid}" data-status="${st}" onclick="selectGame('${gid}')">
+    <div class="card-top-row">
+      ${liveBadge}
+      ${clockHtml}
+    </div>
+    ${teamRow(away,awayColor)}
+    ${teamRow(home,homeColor)}
+    <div class="card-bottom">
+      ${eventLine}
+      ${alerts.length?'<div class="card-alerts">'+alerts.join('')+'</div>':''}
+      ${oddsLine}
+    </div>
+  </div>`;
 }
-async function selectGame(gid,evt,card){
-  document.querySelectorAll('.game-card').forEach(c=>c.classList.remove('active'));
-  card.classList.add('active');selGameId=gid;selEvt=evt;renderDash(evt);await loadGameDetails(gid);
-  if(autoTimer)clearInterval(autoTimer);
-  autoTimer=setInterval(()=>{silentRefreshGames();if(selGameId)loadGameDetails(selGameId);},8000);
-}
+
 function bonusLabel(fouls){const f=parseInt(fouls)||0;if(f>=10)return'DOUBLE BONUS';if(f>=7)return'BONUS';return'';}
 function renderDash(evt){
   const comp=evt.competitions?.[0]||evt,teams=comp.competitors||[];
