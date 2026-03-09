@@ -407,18 +407,15 @@ function buildCard(evt,isSelected){
   const gid=evt.id;
 
   // Seeding: use seed field or curatedRank
-  function seedStr(t){
-    const s=t.curatedRank?.current||t.seed;
-    return (s&&s<99)?'<span class="t-seed">'+s+'</span>':'';
-  }
+  function seedStr(t){const s=t.seed;return (s&&s>=1&&s<=16)?'<span class="t-seed">'+s+'</span>':''}
 
   // Team rows
-  function teamRow(t,scoreColor){
+  function teamRow(t,scoreColor,isFav){
     const name=t.team?.location||t.team?.displayName||'?';
     const abbr=t.team?.abbreviation||'';
     const rec=t.records?.[0]?.summary||'';
     const pts=t.score||'';
-    const starred=t.curatedRank?.current&&t.curatedRank.current<=25?'★ ':'';
+    const starred=isFav?'⭐ ':'';
     return `<div class="team-row">
       <div class="t-left">
         ${seedStr(t)}
@@ -471,7 +468,7 @@ function buildCard(evt,isSelected){
   }
 
   // Event name + venue on same line at bottom
-  const evtName=evt.shortName||evt.name||comp.notes?.[0]?.headline||'';
+  const evtName=comp.notes?.[0]?.headline||evt.name||'';
   const venue=comp.venue?.fullName||comp.venue?.address?.city?(comp.venue?.address?.city+(comp.venue?.address?.state?', '+comp.venue.address.state:'')):'';
   const eventLine=evtName||venue?
     `<div class="card-event-line">
@@ -485,8 +482,8 @@ function buildCard(evt,isSelected){
     const diff=Math.abs(awayPts-homePts);
     if(diff<=4&&(awayPts+homePts)>20) alerts.push('<span class="alert-close">🔥 Close!</span>');
   }
-  const awayFav=away.curatedRank?.current&&away.curatedRank.current<home.curatedRank?.current;
-  const homeFav=home.curatedRank?.current&&home.curatedRank.current<away.curatedRank?.current;
+  const awayFav=odds?.awayTeamOdds?.favorite===true;
+  const homeFav=odds?.homeTeamOdds?.favorite===true;
   if((st==='live'||st==='final')&&awayFav&&homePts>awayPts) alerts.push('<span class="alert-upset">🚨 Upset!</span>');
   if((st==='live'||st==='final')&&homeFav&&awayPts>homePts) alerts.push('<span class="alert-upset">🚨 Upset!</span>');
 
@@ -495,8 +492,8 @@ function buildCard(evt,isSelected){
       ${liveBadge}
       ${clockHtml}
     </div>
-    ${teamRow(away,awayColor)}
-    ${teamRow(home,homeColor)}
+    ${(away._isFav=awayFav,teamRow(away,awayColor,awayFav))}
+    ${(home._isFav=homeFav,teamRow(home,homeColor,homeFav))}
     <div class="card-bottom">
       ${eventLine}
       ${alerts.length?'<div class="card-alerts">'+alerts.join('')+'</div>':''}
