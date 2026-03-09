@@ -320,7 +320,8 @@ async function loadGames(){
     const e3=r3.status==='fulfilled'?r3.value?.events||[]:[];
     e1.forEach(e=>e._stype=2);e2.forEach(e=>e._stype=3);e3.forEach(e=>e._stype=4);
     const ids1=new Set(e1.map(e=>e.id));const ids12=new Set([...ids1,...e2.map(e=>e.id)]);
-    renderList({events:[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))]});
+    allEvents=[...e1,...e2.filter(e=>!ids1.has(e.id)),...e3.filter(e=>!ids12.has(e.id))];
+renderList({events:allEvents});
   }catch(e){document.getElementById('gameList').innerHTML='<div style="color:var(--red);padding:8px">Error: '+e.message+'</div>';showErr('Failed: '+e.message);}
 }
 function silentRefreshGames(){
@@ -417,7 +418,7 @@ function buildCard(evt,isSelected){
     const abbr=t.team?.abbreviation||'';
     const rec=t.records?.[0]?.summary||'';
     const pts=t.score||'';
-    const starred=t.curatedRank?.current&&t.curatedRank.current<100?'★ ':'';
+    const starred=t.curatedRank?.current&&t.curatedRank.current<=25?'★ ':'';
     return `<div class="team-row">
       <div class="t-left">
         ${seedStr(t)}
