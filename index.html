@@ -309,7 +309,7 @@ function minsElapsed(evt){
 // Parse seed from notes headline e.g. "Big South Championship - Quarterfinal"
 function getRoundLabel(headline){
   if(!headline)return'';
-  const h=headline.toLowerCase();
+  const h=(typeof headline==="string"?headline:"").toLowerCase();
   if(h.includes('final')&&!h.includes('semi')&&!h.includes('quarter'))return'F';
   if(h.includes('semifinal')||h.includes('semi-final'))return'SF';
   if(h.includes('quarterfinal')||h.includes('quarter-final'))return'QF';
@@ -431,7 +431,7 @@ function buildCard(evt,isSel){
     var sd=t.seed?"<span class='t-seed'>"+t.seed+"</span>":"";
     var fv=isFav?" <span class='t-fav'>&#11088;</span>":"";
     var hc=(t.homeAway==="home"&&vState)?"<span class='home-icon'>&#127968;</span> ":"";
-    var nm=(t.team&&(t.team.displayName||t.team.name))|"";
+    var nm=(t.team&&(t.team.displayName||t.team.name))||"";
     return "<div class='team-row'><div class='t-info'>"+sd+"<span class='t-name'>"+hc+nm+fv+"</span><span class='t-rec'>"+rec+cs+"</span></div><span class='t-score"+scC+"'>"+sc+"</span></div>";
   }
   var sel=isSel?" selected":"";
