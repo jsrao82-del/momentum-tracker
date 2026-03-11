@@ -425,7 +425,7 @@ function buildCard(evt, isSel) {
   var home = teams.find(function(t){return t.homeAway==="home";}) || teams[1] || {};
   var st = getStatus(evt);
   if (st === "final") return "";
-  var tn = (comp.notes && comp.notes[0] && comp.notes[0].headline) ? comp.notes[0].headline : "";
+  var tn = (comp.notes && comp.notes[0] && comp.notes[0].headline) ? String(comp.notes[0].headline) : "";
   var venue = comp.venue || {};
   var vAddr = venue.address || {};
   var vState = (vAddr.state || "").trim();
