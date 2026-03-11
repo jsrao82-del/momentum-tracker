@@ -322,7 +322,7 @@ function minsElapsed(evt){
 // Parse seed from notes headline e.g. "Big South Championship - Quarterfinal"
 function getRoundLabel(headline){
   if(!headline)return'';
-  const h=headline.toLowerCase();
+  const h=String(headline).toLowerCase();
   if(h.includes('final')&&!h.includes('semi')&&!h.includes('quarter'))return'F';
   if(h.includes('semifinal')||h.includes('semi-final'))return'SF';
   if(h.includes('quarterfinal')||h.includes('quarter-final'))return'QF';
