@@ -416,7 +416,7 @@ function renderList(data){
   const el=document.getElementById('gamesList');el.innerHTML='';
   const evts=data?.events||[];
   if(!evts.length){el.innerHTML='<div style="color:var(--muted);padding:8px">No games today.</div>';return;}
-  [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.appendChild(buildCard(evt)));
+  [...evts].sort((a,b)=>gameSort(a,b)).forEach(evt=>el.innerHTML+=buildCard(evt)));
 }
 function buildCard(evt, isSel) {
   var comp = (evt.competitions && evt.competitions[0]) || evt;
