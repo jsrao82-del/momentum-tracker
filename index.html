@@ -310,7 +310,7 @@ function gameSort(a,b){
   }
   return key(a,sa)-key(b,sb);
 }
-function clockSecs(s){if(!s)return 999;const p=s.split(':');return(parseInt(p[0])||0)*60+(parseInt(p[1])||0);}
+function clockSecs(s){if(!s)return 999;const p=String(s||"").split(':');return(parseInt(p[0])||0)*60+(parseInt(p[1])||0);}
 function minsElapsed(evt){
   const st=getStatus(evt);const period=evt?.status?.period||1;const secs=clockSecs(evt?.status?.displayClock);
   if(st==='final')return 40;
